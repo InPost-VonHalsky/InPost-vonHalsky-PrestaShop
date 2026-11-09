@@ -1,0 +1,924 @@
+{#
+ # InPost Category Mapping - Details Panel
+ # Shows selected category info and PrestaShop category mappings
+ #
+ # @author    SII Poland
+ # @copyright 2025 SII Poland
+ # @license   Commercial
+ #}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-light border-bottom">
+        <h3 class="card-title mb-1">
+            <i class="material-icons align-middle">folder</i>
+            {{ mapping.name }}
+        </h3>
+        {# Category path no longer exists in the new schema
+        {% if mapping.categoryPath %}
+            <small class="text-muted d-block">
+                <i class="material-icons" style="font-size: 14px;">subdirectory_arrow_right</i>
+                {{ mapping.categoryPath }}
+            </small>
+        {% endif %}
+        #}
+    </div>
+
+    <div class="card-body">
+        {# Category Information Section (Read-Only) #}
+        <div class="mb-4">
+            <h5 class="mb-3">
+                <i class="material-icons align-middle">info</i>
+                {{ 'Category Information'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </h5>
+            <dl class="row mb-0">
+                <dt class="col-sm-4 text-muted">{{ 'InPost Category ID:'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</dt>
+                <dd class="col-sm-8"><code class="bg-light px-2 py-1 rounded">{{ mapping.inpostCategoryId }}</code></dd>
+
+                {% if mapping.inpostParentId %}
+                    <dt class="col-sm-4 text-muted">{{ 'Parent Category ID:'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</dt>
+                    <dd class="col-sm-8"><code class="bg-light px-2 py-1 rounded">{{ mapping.inpostParentId }}</code></dd>
+                {% endif %}
+
+                {# Organization ID no longer exists in the new schema
+                <dt class="col-sm-4 text-muted">Organization:</dt>
+                <dd class="col-sm-8">{{ mapping.organizationId }}</dd>
+                #}
+
+                {% if mapping.syncedAt %}
+                    <dt class="col-sm-4 text-muted">{{ 'Last Synced:'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge badge-info">
+                            {{ mapping.syncedAt|date('Y-m-d H:i:s') }}
+                        </span>
+                    </dd>
+                {% endif %}
+            </dl>
+        </div>
+
+        <hr>
+
+        {# PrestaShop Category Mappings Section (Editable) #}
+        <div>
+            <h5 class="mb-3">
+                <i class="material-icons align-middle">link</i>
+                {{ 'PrestaShop Category Mappings'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                <span class="badge badge-primary ml-2">{{ linked_categories|length }}</span>
+            </h5>
+
+            {# Linked Categories Table #}
+            {% if linked_categories|length > 0 %}
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered table-striped table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th width="60">{{ 'ID'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                <th>{{ 'PrestaShop Category'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                <th width="100" class="text-center">{{ 'Actions'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for link in linked_categories %}
+                                <tr>
+                                    <td>{{ link.prestashop_category_id }}</td>
+                                    <td>
+                                        <i class="material-icons align-middle" style="font-size: 18px;">category</i>
+                                        {{ link.ps_category_name|default('Unknown Category') }}
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button"
+                                                class="btn btn-sm btn-danger delete-mapping-btn"
+                                                data-link-id="{{ link.link_id }}"
+                                                data-category-name="{{ link.ps_category_name }}"
+                                                title="{{ 'Delete mapping'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                                            <i class="material-icons">delete</i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="material-icons align-middle">info</i>
+                    {{ 'No PrestaShop categories mapped yet. Add one using the form below.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                </div>
+            {% endif %}
+
+            {# Add New Mapping Form - only leaf categories can hold offers, so only they can be mapped #}
+            {% if not mapping.isLeaf %}
+                <div class="alert alert-warning mb-0">
+                    <i class="material-icons align-middle">block</i>
+                    {{ 'This category has subcategories. Only leaf (lowest-level) categories can be mapped - select a subcategory in the tree.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                </div>
+            {% else %}
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="mb-3">
+                        <i class="material-icons align-middle">add_circle</i>
+                        {{ 'Add New PrestaShop Category Mapping'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </h6>
+
+                    <form id="add-mapping-form" class="form-inline">
+                        <input type="hidden" name="mapping_id" value="{{ mapping.entityId }}">
+                        <input type="hidden" name="inpost_category_id" value="{{ mapping.inpostCategoryId }}">
+                        <input type="hidden" name="shop_id" value="{{ shop_id }}">
+
+                        <div class="form-group mr-3 flex-grow-1">
+                            <label for="prestashop_category_id" class="sr-only">{{ 'Select PrestaShop Category'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</label>
+                            <select name="prestashop_category_id"
+                                    id="prestashop_category_id"
+                                    class="form-control form-control-sm w-100"
+                                    required>
+                                <option value="">{{ '-- Select PrestaShop Category --'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                {% for category in available_categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="material-icons align-middle" style="font-size: 18px;">add</i>
+                            {{ 'Add Mapping'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <hr>
+
+        {# InPost Category Attributes Section (DataTables grid, source edited in a dialog) #}
+        <div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="material-icons align-middle">tune</i>
+                    {{ 'InPost Category Attributes'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                </h5>
+                <button type="button" id="refresh-grid-btn" class="btn btn-sm btn-outline-secondary"
+                        title="{{ 'Fetch this category\'s attributes from InPost'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}"
+                        {% if not mapping.isLeaf %}disabled{% endif %}>
+                    <i class="material-icons" style="font-size: 16px;">refresh</i>
+                    {{ 'Refresh'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                </button>
+            </div>
+
+            <p class="text-muted small mb-2">
+                {{ 'Set where in PrestaShop each attribute takes its value from: a feature (a fixed product parameter, e.g. child age) or an attribute (defines combinations, e.g. size). Offers are then filled in automatically.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </p>
+
+            {% if required_without_source|default(0) > 0 %}
+                <div class="alert alert-warning py-2">
+                    <i class="material-icons align-middle">warning</i>
+                    {{ '%count% required attribute(s) have no PrestaShop source - their values have to be entered in every offer.'|trans({'%count%': required_without_source}, 'Modules.Inpostvonhalsky.Admin') }}
+                </div>
+            {% endif %}
+
+            <div class="table-responsive">
+                <table id="attribute-grid" class="table table-bordered table-striped table-hover" style="width:100%">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>{{ 'Name'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            <th>{{ 'Type'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            <th>{{ 'Required'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            <th>{{ 'Source in PrestaShop'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            <th>{{ 'Values'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            <th width="100" class="text-center">{{ 'Actions'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {# DataTables will populate this from the embedded data #}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Attribute source dialog - moved to <body> on load so the panel layout cannot clip it #}
+<div class="modal fade" id="inpost-attr-source-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    {{ 'Value source'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}:
+                    <strong class="js-attr-name"></strong>
+                    <span class="js-attr-badges"></span>
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="js-loading text-center py-4">
+                    <i class="material-icons icon-spin" style="font-size:36px;">refresh</i>
+                </div>
+                <div class="js-error alert alert-danger d-none"></div>
+                <div class="js-body d-none">
+                    <p class="text-muted small js-attr-description"></p>
+
+                    <div class="form-group">
+                        <label for="inpost-attr-source-select"><strong>{{ 'Take the value from'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</strong></label>
+                        <select id="inpost-attr-source-select" class="d-none" aria-hidden="true" tabindex="-1"></select>
+                        <div class="ias-picker">
+                            <div class="ias-current">
+                                <span class="text-muted">{{ 'Selected:'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</span>
+                                <strong class="js-picker-current"></strong>
+                                <a href="#" class="js-picker-clear ml-2 small">{{ 'Clear'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</a>
+                            </div>
+                            <div class="js-picker-suggestions"></div>
+                            <input type="text" class="form-control form-control-sm js-picker-filter" autocomplete="off"
+                                   placeholder="{{ 'Filter features and attributes...'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                            <div class="js-picker-list"></div>
+                        </div>
+                        <small class="form-text text-muted">
+                            {{ 'Feature: one value per product (e.g. child age, material). Attribute: the value of the variant (e.g. size M) - every variant gets its own offer; an offer of the whole product has no single value, so it is entered in the offer.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                        </small>
+                    </div>
+
+                    <div class="js-suggestion alert alert-info py-2 d-none"></div>
+
+                    <div class="js-values d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>{{ 'PrestaShop values'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</strong>
+                            <span>
+                                <span class="js-values-summary mr-2"></span>
+                                <label class="mb-0 small js-only-unmatched-wrap">
+                                    <input type="checkbox" class="js-only-unmatched"> {{ 'Only not matched'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                                </label>
+                            </span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-1">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>{{ 'In PrestaShop'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                        <th>{{ 'In InPost'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                        <th width="130"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="js-values-rows"></tbody>
+                            </table>
+                        </div>
+                        <small class="form-text text-muted js-values-hint"></small>
+                    </div>
+
+                    <div class="js-no-values alert alert-light border d-none"></div>
+
+                    <div class="form-check mt-3 js-apply-same-wrap d-none">
+                        <input class="form-check-input" type="checkbox" id="inpost-attr-apply-same" checked>
+                        <label class="form-check-label js-apply-same-label" for="inpost-attr-apply-same"></label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">{{ 'Cancel'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</button>
+                <button type="button" class="btn btn-primary js-save" disabled>
+                    <i class="material-icons align-middle" style="font-size: 18px;">save</i>
+                    {{ 'Save Mapping'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+<script>
+// Translations for JS
+var inpostTranslations = {
+    yes: '{{ "Yes"|trans({}, d)|e("js") }}',
+    no: '{{ "No"|trans({}, d)|e("js") }}',
+    feature: '{{ "Feature"|trans({}, d)|e("js") }}',
+    attribute: '{{ "Attribute"|trans({}, d)|e("js") }}',
+    features: '{{ "Features (fixed product parameters)"|trans({}, d)|e("js") }}',
+    attributeGroups: '{{ "Attributes (combinations)"|trans({}, d)|e("js") }}',
+    productField: '{{ "Product field"|trans({}, d)|e("js") }}',
+    productFields: '{{ "Product fields (reference, MPN, EAN, weight...)"|trans({}, d)|e("js") }}',
+    noValuesProductField: '{{ "The value is read from this field of each product - there are no predefined values."|trans({}, d)|e("js") }}',
+    noSource: '{{ "No source - value entered in the offer"|trans({}, d)|e("js") }}',
+    requiredNoSource: '{{ "Required - no source"|trans({}, d)|e("js") }}',
+    matched: '{{ "%matched%/%total% matched"|trans({}, d)|e("js") }}',
+    setSource: '{{ "Set source"|trans({}, d)|e("js") }}',
+    editSource: '{{ "Edit source"|trans({}, d)|e("js") }}',
+    required: '{{ "Required"|trans({}, d)|e("js") }}',
+    multiple: '{{ "Several values"|trans({}, d)|e("js") }}',
+    suggestion: '{{ "Suggestion: %kind% \"%name%\" has the same name and was selected - save to confirm."|trans({}, d)|e("js") }}',
+    autoOption: '{{ "Automatically: %label%"|trans({}, d)|e("js") }}',
+    noMatchOption: '{{ "-- not matched --"|trans({}, d)|e("js") }}',
+    statusMapped: '{{ "Set manually"|trans({}, d)|e("js") }}',
+    statusAuto: '{{ "Matched by name"|trans({}, d)|e("js") }}',
+    statusUnmatched: '{{ "Not matched"|trans({}, d)|e("js") }}',
+    statusInvalid: '{{ "Not valid"|trans({}, d)|e("js") }}',
+    valuesSummary: '{{ "Matched: %matched% of %total%"|trans({}, d)|e("js") }}',
+    dictionaryHint: '{{ "Values matched by name need no action. Values of a product that are not matched are skipped - the offer then needs the value entered manually. Custom feature values of products are matched by name when the offer is created."|trans({}, d)|e("js") }}',
+    convertHint: '{{ "Preview of the value sent to InPost (the first number for numeric attributes)."|trans({}, d)|e("js") }}',
+    noValuesFeature: '{{ "This feature has no predefined values - custom values of products are matched by name when an offer is created."|trans({}, d)|e("js") }}',
+    noValuesGroup: '{{ "This attribute has no values yet."|trans({}, d)|e("js") }}',
+    noSourceInfo: '{{ "Without a source the value is entered in each offer (or filled from an InPost product suggestion)."|trans({}, d)|e("js") }}',
+    applySame: '{{ "Set the same source also for %count% other categories with attribute \"%name%\" that have no source yet"|trans({}, d)|e("js") }}',
+    loadFailed: '{{ "Failed to load attribute mapping"|trans({}, d)|e("js") }}',
+    saveFailed: '{{ "Failed to update attribute mapping."|trans({}, d)|e("js") }}',
+    dtEmpty: '{{ "No attributes available for this category"|trans({}, d)|e("js") }}',
+    dtZero: '{{ "No attributes found"|trans({}, d)|e("js") }}',
+    dtInfo: '{{ "Showing _START_ to _END_ of _TOTAL_ attributes"|trans({}, d)|e("js") }}',
+    dtInfoEmpty: '{{ "No attributes available"|trans({}, d)|e("js") }}',
+    dtFiltered: '{{ "(filtered from _MAX_ total attributes)"|trans({}, d)|e("js") }}',
+    dtSearch: '{{ "Search attributes:"|trans({}, d)|e("js") }}',
+    dtLength: '{{ "Show _MENU_"|trans({}, d)|e("js") }}',
+    dtAll: '{{ "All"|trans({}, d)|e("js") }}',
+    dtFirst: '{{ "First"|trans({}, d)|e("js") }}',
+    dtLast: '{{ "Last"|trans({}, d)|e("js") }}',
+    dtNext: '{{ "Next"|trans({}, d)|e("js") }}',
+    dtPrevious: '{{ "Previous"|trans({}, d)|e("js") }}',
+    suggestionsLabel: '{{ "Suggestions:"|trans({}, d)|e("js") }}',
+    noMatches: '{{ "Nothing matches the filter."|trans({}, d)|e("js") }}'
+};
+
+$(document).ready(function() {
+    const mappingId = {{ mapping.entityId }};
+    const categoryId = '{{ mapping.inpostCategoryId|e('js') }}';
+    const esc = function(value) { return $('<div>').text(value == null ? '' : String(value)).html(); };
+    const fmt = function(text, params) {
+        Object.keys(params || {}).forEach(function(key) { text = text.split('%' + key + '%').join(params[key]); });
+        return text;
+    };
+
+    // Handle refresh grid button click
+    $('#refresh-grid-btn').on('click', function() {
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+
+        // Show loading state
+        $btn.prop('disabled', true).html('<i class="material-icons" style="font-size: 16px;">hourglass_empty</i> {{ 'Refreshing...'|trans({}, d)|e('js') }}');
+
+        // Fetch this category's attributes from the InPost API, then reload the panel
+        // (grid included) and show the outcome on top of it
+        $.ajax({
+            url: '{{ path('inpost_category_mapping_refresh_attributes', {id: mapping.entityId})|raw }}',
+            method: 'POST',
+            dataType: 'json'
+        }).done(function(response) {
+            loadCategoryDetails(mappingId, categoryId, {
+                type: response.success ? 'success' : 'error',
+                message: response.message
+            });
+        }).fail(function(xhr) {
+            const message = (xhr.responseJSON && xhr.responseJSON.message)
+                ? xhr.responseJSON.message
+                : '{{ 'Failed to refresh attributes'|trans({}, d)|e('js') }} (HTTP ' + xhr.status + ')';
+            $btn.prop('disabled', false).html(originalHtml);
+            showNotification('error', esc(message));
+        });
+    });
+
+    // Handle delete mapping button click
+    $('.delete-mapping-btn').on('click', function() {
+        const linkId = $(this).data('link-id');
+        const categoryName = $(this).data('category-name');
+
+        if (!confirm('{{ 'Are you sure you want to delete the mapping to "%name%"?'|trans({}, d)|e('js') }}'.replace('%name%', categoryName))) {
+            return;
+        }
+
+        // Generate delete URL with _token
+        const deleteUrlBase = '{{ path("inpost_category_mapping_delete", {"id": 999999})|raw }}';
+        const deleteUrl = deleteUrlBase.replace('999999', linkId);
+
+        // AJAX delete request
+        $.ajax({
+            url: deleteUrl,
+            method: 'POST',
+            success: function(response) {
+                showNotification('success', '{{ 'Mapping deleted successfully'|trans({}, d)|e('js') }}');
+                loadCategoryDetails(mappingId, categoryId);
+            },
+            error: function(xhr) {
+                showNotification('error', '{{ 'Failed to delete mapping: %error%'|trans({}, d)|e('js') }}'.replace('%error%', esc(xhr.responseText)));
+            }
+        });
+    });
+
+    // Handle add mapping form submission
+    $('#add-mapping-form').on('submit', function(e) {
+        e.preventDefault();
+
+        const formData = $(this).serialize();
+
+        $.ajax({
+            url: '{{ path("inpost_category_mapping_store")|raw }}',
+            method: 'POST',
+            data: formData,
+            success: function(response) {
+                showNotification('success', '{{ 'Mapping added successfully'|trans({}, d)|e('js') }}');
+                $('#prestashop_category_id').val('');
+                loadCategoryDetails(mappingId, categoryId);
+            },
+            error: function(xhr) {
+                const message = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : xhr.responseText;
+                showNotification('error', '{{ 'Failed to add mapping: %error%'|trans({}, d)|e('js') }}'.replace('%error%', esc(message)));
+            }
+        });
+    });
+
+    // Notification helper function
+    function showNotification(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const iconName = type === 'success' ? 'check_circle' : 'error';
+
+        const $notification = $('<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">')
+            .html('<i class="material-icons align-middle">' + iconName + '</i> ' + message +
+                  '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>');
+
+        $('#category-details-content').prepend($notification);
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(function() {
+            $notification.alert('close');
+        }, 3000);
+    }
+
+    // Initialize DataTables for attribute grid (using server-side rendered data)
+    const attributeData = {{ attributes|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }};
+
+    $('#attribute-grid').DataTable({
+        data: attributeData.map(function(attr) {
+            return {
+                category_attribute_id: attr.category_attribute_id,
+                inpost_attribute_id: attr.code || '',
+                name: attr.label || '',
+                type: attr.type || '',
+                required: attr.required ? 1 : 0,
+                multiple: !!attr.multiple,
+                ps_source_type: attr.ps_source_type || null,
+                ps_source_name: attr.ps_source_name || null,
+                value_coverage: attr.value_coverage || null
+            };
+        }),
+        columns: [
+            {
+                data: 'name',
+                render: function(data, type, row) {
+                    if (type !== 'display') {
+                        return data;
+                    }
+                    return esc(data) + '<br><small class="text-muted"><code>' + esc(row.inpost_attribute_id) + '</code></small>';
+                }
+            },
+            { data: 'type', render: function(data, type, row) {
+                return type === 'display' ? esc(data) + (row.multiple ? ' <span class="badge badge-secondary">' + esc(inpostTranslations.multiple) + '</span>' : '') : data;
+            } },
+            {
+                data: 'required',
+                render: function(data, type) {
+                    if (type !== 'display') {
+                        return data;
+                    }
+                    return data === 1
+                        ? '<span class="badge badge-danger">' + inpostTranslations.yes + '</span>'
+                        : '<span class="badge badge-secondary">' + inpostTranslations.no + '</span>';
+                }
+            },
+            {
+                data: 'ps_source_name',
+                render: function(data, type, row) {
+                    if (type !== 'display') {
+                        return data || '';
+                    }
+                    if (data) {
+                        const kind = sourceKind(row.ps_source_type);
+                        const badge = { feature: 'badge-primary', product_field: 'badge-success' }[row.ps_source_type] || 'badge-info';
+                        return '<span class="badge ' + badge + '">' + esc(kind) + '</span> ' + esc(data);
+                    }
+                    return row.required === 1
+                        ? '<span class="badge badge-warning">' + esc(inpostTranslations.requiredNoSource) + '</span>'
+                        : '<span class="text-muted">-</span>';
+                }
+            },
+            {
+                data: 'value_coverage',
+                orderable: false,
+                render: function(data, type) {
+                    if (type !== 'display' || !data || !data.total) {
+                        return type === 'display' ? '<span class="text-muted">-</span>' : '';
+                    }
+                    const badge = data.matched === data.total ? 'badge-success' : 'badge-warning';
+                    return '<span class="badge ' + badge + '">' + esc(fmt(inpostTranslations.matched, data)) + '</span>';
+                }
+            },
+            {
+                data: null,
+                orderable: false,
+                className: 'text-center',
+                render: function(data, type, row) {
+                    const label = row.ps_source_name ? inpostTranslations.editSource : inpostTranslations.setSource;
+                    return '<button type="button" class="btn btn-sm btn-primary js-attr-source" data-id="' + esc(row.category_attribute_id) + '" title="' + esc(label) + '">' +
+                           '<i class="material-icons" style="font-size: 16px;">edit</i>' +
+                           '</button>';
+                }
+            }
+        ],
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, inpostTranslations.dtAll]],
+        // Required first, then by name
+        order: [[2, 'desc'], [0, 'asc']],
+        language: {
+            emptyTable: inpostTranslations.dtEmpty,
+            zeroRecords: inpostTranslations.dtZero,
+            info: inpostTranslations.dtInfo,
+            infoEmpty: inpostTranslations.dtInfoEmpty,
+            infoFiltered: inpostTranslations.dtFiltered,
+            search: inpostTranslations.dtSearch,
+            lengthMenu: inpostTranslations.dtLength,
+            paginate: {
+                first: inpostTranslations.dtFirst,
+                last: inpostTranslations.dtLast,
+                next: inpostTranslations.dtNext,
+                previous: inpostTranslations.dtPrevious
+            }
+        }
+    });
+
+    // =====================================================================
+    // Attribute source dialog
+    // =====================================================================
+    $('body > #inpost-attr-source-modal').remove();
+    const $modal = $('#inpost-attr-source-modal').appendTo('body');
+    const sourceUrlBase = '{{ path("inpost_attribute_mapping_source", {"id": 999999})|raw }}';
+    const saveUrlBase = '{{ path("inpost_attribute_mapping_source_save", {"id": 999999})|raw }}';
+    let current = null; // dialog data of the open attribute
+
+    function sourceUrl(id) { return sourceUrlBase.replace('999999', id); }
+
+    function showState(state, message) {
+        $modal.find('.js-loading').toggleClass('d-none', state !== 'loading');
+        $modal.find('.js-error').toggleClass('d-none', state !== 'error').text(message || '');
+        $modal.find('.js-body').toggleClass('d-none', state !== 'ready');
+        $modal.find('.js-save').prop('disabled', state !== 'ready');
+    }
+
+    function openDialog(categoryAttributeId) {
+        current = null;
+        $modal.find('#inpost-attr-apply-same').prop('checked', true);
+        $modal.find('.js-only-unmatched').prop('checked', false);
+        $modal.find('.js-attr-name').text('');
+        $modal.find('.js-attr-badges').empty();
+        showState('loading');
+        $modal.modal('show');
+        load(categoryAttributeId, {});
+    }
+
+    function load(categoryAttributeId, params) {
+        $.ajax({ url: sourceUrl(categoryAttributeId), method: 'GET', dataType: 'json', data: params })
+            .done(function(response) {
+                if (!response.success) {
+                    showState('error', response.message || inpostTranslations.loadFailed);
+                    return;
+                }
+                render(response.data);
+                showState('ready');
+            })
+            .fail(function(xhr) {
+                showState('error', (xhr.responseJSON && xhr.responseJSON.message) || inpostTranslations.loadFailed);
+            });
+    }
+
+    function render(data) {
+        const firstRender = current === null;
+        current = data;
+        const attr = data.attribute;
+
+        if (firstRender) {
+            $modal.find('.js-attr-name').text(attr.label);
+            const badges = [];
+            badges.push('<span class="badge badge-secondary">' + esc(attr.type) + '</span>');
+            if (attr.required) {
+                badges.push('<span class="badge badge-danger">' + esc(inpostTranslations.required) + '</span>');
+            }
+            if (attr.multiple && attr.type === 'DICTIONARY') {
+                badges.push('<span class="badge badge-secondary">' + esc(inpostTranslations.multiple) + '</span>');
+            }
+            $modal.find('.js-attr-badges').html(' ' + badges.join(' '));
+            $modal.find('.js-attr-description').text(attr.description || '').toggleClass('d-none', !attr.description);
+            renderSourceSelect(data);
+        }
+
+        // Suggestion notice: only when nothing is saved and the suggestion is shown
+        const selected = data.selected || {};
+        const showSuggestion = !data.saved.type && data.suggestion
+            && selected.type === data.suggestion.type && selected.id === data.suggestion.id;
+        $modal.find('.js-suggestion')
+            .toggleClass('d-none', !showSuggestion)
+            .text(showSuggestion ? fmt(inpostTranslations.suggestion, {
+                kind: sourceKind(data.suggestion.type),
+                name: data.suggestion.name
+            }) : '');
+
+        renderValues(data);
+
+        const sameCount = data.same_named_unmapped || 0;
+        $modal.find('.js-apply-same-wrap').toggleClass('d-none', !selected.type || sameCount === 0);
+        $modal.find('.js-apply-same-label').text(fmt(inpostTranslations.applySame, { count: sameCount, name: attr.label }));
+    }
+
+    // "Feature" / "Attribute" / "Product field" for a source type
+    function sourceKind(type) {
+        return { feature: inpostTranslations.feature, product_field: inpostTranslations.productField }[type] || inpostTranslations.attribute;
+    }
+
+    function renderSourceSelect(data) {
+        const $select = $modal.find('#inpost-attr-source-select').empty();
+        $select.append($('<option>').val('').text(inpostTranslations.noSource));
+
+        const groups = [
+            ['feature', inpostTranslations.features, data.sources.features],
+            ['attribute_group', inpostTranslations.attributeGroups, data.sources.attribute_groups],
+            ['product_field', inpostTranslations.productFields, data.sources.product_fields || []]
+        ];
+        groups.forEach(function(group) {
+            if (!group[2].length) {
+                return;
+            }
+            const $group = $('<optgroup>').attr('label', group[1]);
+            group[2].forEach(function(source) {
+                $group.append($('<option>').val(group[0] + ':' + source.id).text(source.name));
+            });
+            $select.append($group);
+        });
+
+        const selected = data.selected || {};
+        $select.val(selected.type ? selected.type + ':' + selected.id : '');
+        $modal.find('.js-picker-filter').val('');
+        renderPicker(data);
+    }
+
+    // Always-visible source list (columns, filterable) instead of a dropdown inside the dialog
+    function renderPicker(data) {
+        const value = $modal.find('#inpost-attr-source-select').val() || '';
+        const item = function(type, source, extra) {
+            const v = type + ':' + source.id;
+            return '<button type="button" class="ias-item' + (v === value ? ' active' : '') + '" data-value="' + esc(v) + '" data-name="' + esc(source.name.toLowerCase()) + '">'
+                + (extra || '') + esc(source.name) + '</button>';
+        };
+
+        const suggestions = (data.suggestions || []).map(function(s) {
+            return item(s.type, s, '<span class="ias-score ' + esc(s.level) + '">' + s.score + '%</span>')
+                .replace('class="ias-item', 'class="ias-item ias-suggestion');
+        });
+        $modal.find('.js-picker-suggestions').html(suggestions.length
+            ? '<span class="text-muted small mr-1">' + esc(inpostTranslations.suggestionsLabel) + '</span>' + suggestions.join('')
+            : '');
+
+        const groups = [
+            ['feature', inpostTranslations.features, data.sources.features],
+            ['attribute_group', inpostTranslations.attributeGroups, data.sources.attribute_groups],
+            ['product_field', inpostTranslations.productFields, data.sources.product_fields || []]
+        ];
+        let html = '';
+        groups.forEach(function(group) {
+            if (!group[2].length) {
+                return;
+            }
+            html += '<div class="ias-group"><div class="ias-group-title">' + esc(group[1]) + ' <span class="text-muted">(' + group[2].length + ')</span></div>'
+                + '<div class="ias-grid">' + group[2].map(function(source) { return item(group[0], source); }).join('') + '</div></div>';
+        });
+        $modal.find('.js-picker-list').html(html + '<div class="ias-empty text-muted small d-none">' + esc(inpostTranslations.noMatches) + '</div>');
+        updatePickerCurrent();
+    }
+
+    function updatePickerCurrent() {
+        const $select = $modal.find('#inpost-attr-source-select');
+        const value = $select.val() || '';
+        $modal.find('.ias-item').each(function() {
+            $(this).toggleClass('active', $(this).data('value') === value);
+        });
+        const $opt = $select.find('option:selected');
+        const kind = value ? sourceKind(value.split(':')[0]) : '';
+        $modal.find('.js-picker-current').text(value ? kind + ': ' + $opt.text() : inpostTranslations.noSource);
+        $modal.find('.js-picker-clear').toggleClass('d-none', !value);
+    }
+
+    function pickSource(value) {
+        const $select = $modal.find('#inpost-attr-source-select');
+        if (($select.val() || '') === value) {
+            return;
+        }
+        $select.val(value);
+        updatePickerCurrent();
+        $select.trigger('change');
+    }
+
+    function renderValues(data) {
+        const attr = data.attribute;
+        const selected = data.selected || {};
+        const $rows = $modal.find('.js-values-rows').empty();
+        const isDictionary = attr.type === 'DICTIONARY';
+
+        $modal.find('.js-values').toggleClass('d-none', !selected.type || !data.values.length);
+        $modal.find('.js-only-unmatched-wrap').toggleClass('d-none', !isDictionary);
+        $modal.find('.js-values-hint').text(isDictionary ? inpostTranslations.dictionaryHint : inpostTranslations.convertHint);
+
+        const $noValues = $modal.find('.js-no-values');
+        if (!selected.type) {
+            $noValues.removeClass('d-none').text(inpostTranslations.noSourceInfo);
+        } else if (!data.values.length) {
+            $noValues.removeClass('d-none').text({
+                feature: inpostTranslations.noValuesFeature,
+                product_field: inpostTranslations.noValuesProductField
+            }[selected.type] || inpostTranslations.noValuesGroup);
+        } else {
+            $noValues.addClass('d-none');
+        }
+
+        const optionLabels = {};
+        (attr.options || []).forEach(function(option) { optionLabels[option.value] = option.label; });
+
+        data.values.forEach(function(value) {
+            const $tr = $('<tr>').attr('data-value-id', value.id).attr('data-auto', value.auto_code || '');
+            $tr.append($('<td>').text(value.label));
+
+            const $target = $('<td>');
+            if (isDictionary) {
+                const $sel = $('<select class="form-control form-control-sm js-value-code">');
+                $sel.append($('<option>').val('').text(value.auto_code
+                    ? fmt(inpostTranslations.autoOption, { label: optionLabels[value.auto_code] || value.auto_code })
+                    : inpostTranslations.noMatchOption));
+                (attr.options || []).forEach(function(option) {
+                    $sel.append($('<option>').val(option.value).text(option.label));
+                });
+                $sel.val(value.code || '');
+                $target.append($sel);
+            } else {
+                $target.text(value.preview == null ? '' : value.preview);
+            }
+            $tr.append($target);
+            $tr.append($('<td class="js-value-status">'));
+            $rows.append($tr);
+            updateRowStatus($tr, isDictionary ? null : value.status);
+        });
+
+        updateSummary();
+    }
+
+    function updateRowStatus($tr, fixedStatus) {
+        let status = fixedStatus;
+        if (!status) {
+            const code = $tr.find('.js-value-code').val();
+            status = code ? 'mapped' : ($tr.data('auto') ? 'auto' : 'unmatched');
+        }
+        const badges = {
+            mapped: ['badge-primary', inpostTranslations.statusMapped],
+            auto: ['badge-success', inpostTranslations.statusAuto],
+            unmatched: ['badge-warning', inpostTranslations.statusUnmatched],
+            invalid: ['badge-warning', inpostTranslations.statusInvalid]
+        };
+        const badge = badges[status] || badges.unmatched;
+        $tr.attr('data-status', status);
+        $tr.find('.js-value-status').html('<span class="badge ' + badge[0] + '">' + esc(badge[1]) + '</span>');
+    }
+
+    function updateSummary() {
+        const $rows = $modal.find('.js-values-rows tr');
+        const matched = $rows.filter('[data-status="mapped"], [data-status="auto"]').length;
+        $modal.find('.js-values-summary').text($rows.length ? fmt(inpostTranslations.valuesSummary, { matched: matched, total: $rows.length }) : '');
+        const onlyUnmatched = $modal.find('.js-only-unmatched').is(':checked');
+        $rows.each(function() {
+            const status = $(this).attr('data-status');
+            $(this).toggle(!onlyUnmatched || status === 'unmatched' || status === 'invalid');
+        });
+    }
+
+    // The panel is reloaded in place - rebind instead of stacking handlers
+    $('#category-details-content').off('click.inpostAttrSource').on('click.inpostAttrSource', '.js-attr-source', function() {
+        openDialog($(this).data('id'));
+    });
+
+    $modal.on('change', '#inpost-attr-source-select', function() {
+        if (!current) {
+            return;
+        }
+        const parts = ($(this).val() || '').split(':');
+        $modal.find('.js-values-rows').empty();
+        if (parts.length !== 2) {
+            current.selected = { type: null, id: null };
+            current.values = [];
+            render(current);
+            return;
+        }
+        $modal.find('.js-save').prop('disabled', true);
+        load(current.attribute.category_attribute_id, { type: parts[0], source_id: parts[1] });
+    });
+
+    $modal.on('click', '.ias-item', function() {
+        pickSource(String($(this).data('value')));
+    });
+    $modal.on('click', '.js-picker-clear', function(e) {
+        e.preventDefault();
+        pickSource('');
+    });
+    $modal.on('input', '.js-picker-filter', function() {
+        const q = $.trim($(this).val()).toLowerCase();
+        $modal.find('.js-picker-list .ias-item').each(function() {
+            $(this).toggleClass('d-none', q !== '' && String($(this).data('name')).indexOf(q) === -1);
+        });
+        $modal.find('.js-picker-list .ias-group').each(function() {
+            $(this).toggleClass('d-none', !$(this).find('.ias-item:not(.d-none)').length);
+        });
+        $modal.find('.ias-empty').toggleClass('d-none', !!$modal.find('.js-picker-list .ias-item:not(.d-none)').length);
+    });
+
+    $modal.on('change', '.js-value-code', function() {
+        updateRowStatus($(this).closest('tr'), null);
+        updateSummary();
+    });
+
+    $modal.on('change', '.js-only-unmatched', updateSummary);
+
+    $modal.on('click', '.js-save', function() {
+        if (!current) {
+            return;
+        }
+        const $btn = $(this).prop('disabled', true);
+        const parts = ($modal.find('#inpost-attr-source-select').val() || '').split(':');
+        const payload = {
+            type: parts.length === 2 ? parts[0] : '',
+            source_id: parts.length === 2 ? parts[1] : '',
+            apply_same_named: $modal.find('#inpost-attr-apply-same').is(':checked') && !$modal.find('.js-apply-same-wrap').hasClass('d-none') ? 1 : 0,
+            values: {}
+        };
+        $modal.find('.js-values-rows tr').each(function() {
+            const $sel = $(this).find('.js-value-code');
+            if ($sel.length) {
+                payload.values[$(this).data('value-id')] = $sel.val() || '';
+            }
+        });
+
+        $.ajax({ url: saveUrlBase.replace('999999', current.attribute.category_attribute_id), method: 'POST', dataType: 'json', data: payload })
+            .done(function(response) {
+                if (!response.success) {
+                    showState('error', response.message || inpostTranslations.saveFailed);
+                    $btn.prop('disabled', false);
+                    return;
+                }
+                $modal.one('hidden.bs.modal', function() {
+                    loadCategoryDetails(mappingId, categoryId, { type: 'success', message: response.message });
+                });
+                $modal.modal('hide');
+            })
+            .fail(function(xhr) {
+                $modal.find('.js-error').removeClass('d-none').text((xhr.responseJSON && xhr.responseJSON.message) || inpostTranslations.saveFailed);
+                $btn.prop('disabled', false);
+            });
+    });
+
+    // Opened from an old "edit attribute mapping" link / an offer: ?attribute=<id>
+    const params = new URLSearchParams(window.location.search);
+    const requested = parseInt(params.get('attribute') || '0', 10);
+    if (requested && attributeData.some(function(attr) { return attr.category_attribute_id === requested; })) {
+        params.delete('attribute');
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, '', window.location.pathname + '?' + params.toString());
+        }
+        openDialog(requested);
+    }
+});
+
+// Note: loadCategoryDetails function is defined in category_mapping_tree.js
+</script>
+
+<style>
+    .material-icons.align-middle {
+        vertical-align: middle;
+        font-size: 20px;
+    }
+
+    .delete-mapping-btn {
+        padding: 0.25rem 0.5rem;
+    }
+
+    .delete-mapping-btn .material-icons {
+        font-size: 16px;
+    }
+
+    code {
+        font-size: 0.9em;
+    }
+
+    .badge {
+        font-size: 0.85em;
+    }
+
+    /* Source picker: whole list visible, the dialog body is the only scroll */
+    #inpost-attr-source-modal .ias-picker { border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; background: #fafbfc; }
+    #inpost-attr-source-modal .ias-current { margin-bottom: 8px; }
+    #inpost-attr-source-modal .js-picker-suggestions { margin-bottom: 8px; }
+    #inpost-attr-source-modal .js-picker-filter { max-width: 320px; margin-bottom: 8px; }
+    #inpost-attr-source-modal .ias-group + .ias-group { margin-top: 10px; }
+    #inpost-attr-source-modal .ias-group-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; color: #6c868e; margin-bottom: 4px; }
+    #inpost-attr-source-modal .ias-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px; }
+    #inpost-attr-source-modal .ias-item { text-align: left; border: 1px solid #dde2e5; background: #fff; border-radius: 3px; padding: 4px 8px; font-size: 13px; line-height: 1.3; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #inpost-attr-source-modal .ias-item:hover { border-color: #25b9d7; background: #f2fbfd; }
+    #inpost-attr-source-modal .ias-item.active { border-color: #25b9d7; background: #25b9d7; color: #fff; font-weight: 600; }
+    #inpost-attr-source-modal .ias-suggestion { display: inline-block; width: auto; margin: 0 4px 4px 0; }
+    #inpost-attr-source-modal .ias-score { display: inline-block; font-size: 11px; font-weight: 600; color: #fff; border-radius: 8px; padding: 0 5px; margin-right: 5px; background: #f0ad4e; }
+    #inpost-attr-source-modal .ias-score.sure { background: #28a745; }
+    #inpost-attr-source-modal .ias-item.active .ias-score { background: rgba(255,255,255,.3); }
+</style>

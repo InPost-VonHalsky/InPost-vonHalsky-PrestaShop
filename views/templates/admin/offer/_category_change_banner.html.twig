@@ -1,0 +1,103 @@
+{#
+/**
+ * Offer edit form in "change category" mode: what the change does and its
+ * options. Rendered inside the offer form - the checkboxes are posted with it.
+ *
+ * @param cc OfferCategoryChangeService::preview() result
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+{% set movable = cc.variants|filter(v => not v.blocked and not v.same_category) %}
+{% set blocked = cc.variants|filter(v => v.blocked) %}
+<div class="alert alert-warning inpost-category-change-banner">
+    <h4 class="alert-heading mb-2">
+        <i class="material-icons" style="vertical-align: middle;">swap_horiz</i>
+        {{ 'Changing the InPost category of the offer'|trans({}, d) }}
+    </h4>
+
+    <div class="mb-2">
+        <span class="text-muted">{{ 'From:'|trans({}, d) }}</span>
+        <strong>{{ cc.current ? cc.current.path|join(' › ') : '-' }}</strong>
+        <br>
+        <span class="text-muted">{{ 'To:'|trans({}, d) }}</span>
+        <strong>{{ cc.target.path|join(' › ') }}</strong>
+    </div>
+
+    {% if cc.attributes.lost|length %}
+        <div class="mb-2">
+            {{ 'These attribute values are removed when you save (the new category does not have them):'|trans({}, d) }}
+            <ul class="mb-0">
+                {% for attr in cc.attributes.lost %}
+                    <li><strong>{{ attr.label }}</strong>: {{ attr.values|join(', ') }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if cc.attributes.kept|length %}
+        <div class="mb-2">
+            {{ 'Values kept (the new category has these attributes too):'|trans({}, d) }}
+            {% for attr in cc.attributes.kept %}<strong>{{ attr.label }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="mb-2">
+        {{ 'The attributes of the new category are on the "InPost Attributes" tab, prefilled from PrestaShop and the InPost catalogue where possible - check them and fill in the required ones.'|trans({}, d) }}
+    </div>
+
+    {% if cc.is_sent %}
+        <div class="mb-2">
+            <i class="material-icons" style="font-size:16px;vertical-align:-3px;">info</i>
+            {{ 'The offer is already in InPost: after saving it is sent with the new category, and InPost may review it again.'|trans({}, d) }}
+        </div>
+    {% endif %}
+
+    {% if movable|length %}
+        <div class="form-check mb-1">
+            <input type="checkbox" class="form-check-input" id="category-change-variants" name="category_change_variants" value="1" checked>
+            <label class="form-check-label" for="category-change-variants">
+                {{ 'Move the other variants of this product too (%count%)'|trans({'%count%': movable|length}, d) }}
+            </label>
+            <small class="form-text text-muted">
+                {% for v in movable %}#{{ v.id }}{% if v.label %} {{ v.label }}{% endif %} ({{ v.status }}){% if not loop.last %}, {% endif %}{% endfor %}.
+                {{ 'Their attributes are filled automatically; a variant with a required value missing is not sent until you complete it.'|trans({}, d) }}
+            </small>
+        </div>
+    {% endif %}
+    {% if blocked|length %}
+        <small class="d-block text-muted mb-2">
+            {{ 'Not moved - under InPost review:'|trans({}, d) }}
+            {% for v in blocked %}#{{ v.id }}{% if v.label %} {{ v.label }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+        </small>
+    {% endif %}
+
+    {% if cc.shop_category and cc.shop_category.state != 'same' %}
+        <div class="form-check mb-2">
+            <input type="checkbox" class="form-check-input" id="category-change-link" name="category_change_link" value="1">
+            <label class="form-check-label" for="category-change-link">
+                {{ 'Also link the shop category "%name%" to the new InPost category'|trans({'%name%': cc.shop_category.name}, d) }}
+            </label>
+            <small class="form-text text-muted">
+                {% if cc.shop_category.state == 'other' %}
+                    {{ 'Now linked to: %path%.'|trans({'%path%': cc.shop_category.linked_path|join(' › ')}, d) }}
+                {% else %}
+                    {{ 'Not linked to any InPost category now.'|trans({}, d) }}
+                {% endif %}
+                {{ 'Only offers created later use the link - existing offers of other products stay where they are.'|trans({}, d) }}
+            </small>
+        </div>
+    {% endif %}
+
+    <hr>
+    <div class="d-flex justify-content-between align-items-center">
+        <span>{{ 'Nothing is saved until you click "Update Offer".'|trans({}, d) }}</span>
+        <a href="{{ path('inpost_offers_edit', {id: offer.id}) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="material-icons">undo</i>
+            {{ 'Cancel the change'|trans({}, d) }}
+        </a>
+    </div>
+</div>

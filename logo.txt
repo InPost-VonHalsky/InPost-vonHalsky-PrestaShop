@@ -1,0 +1,8 @@
+LOGO PLACEHOLDER
+
+This file is a placeholder for the module logo.
+Replace with a 140x140px PNG image named 'logo.png'
+
+InPost von Halsky Logo
+Required: 140x140 pixels, PNG format
+Brand colors: Red (#E30613) on white background

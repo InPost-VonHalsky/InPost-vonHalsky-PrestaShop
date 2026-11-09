@@ -1,0 +1,234 @@
+/**
+ * InPost von Halsky - Back Office Styles
+ */
+
+/* Hide parent menu item - serves only as container, should not be clickable */
+#subtab-AdminInpostVonHalsky {
+    display: none !important;
+}
+
+/* Required field indicator */
+label.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Module configuration page: sticky left-hand section navigation
+ * (built by the inline script in Inpostvonhalsky::renderForm()).
+ * Falls back to a normal full-width form when JS is disabled: the
+ * flex layout only activates once the .inpostvonhalsky-has-nav class is set.
+ * ───────────────────────────────────────────────────────────── */
+#inpostvonhalsky-cfg-wrapper.inpostvonhalsky-has-nav {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+#inpostvonhalsky-cfg-wrapper .inpostvonhalsky-cfg-nav {
+    position: sticky;
+    top: 70px;
+    flex: 0 0 240px;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+    padding: 6px 0;
+    background: #fff;
+    border: 1px solid #e0e6ed;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+#inpostvonhalsky-cfg-wrapper .inpostvonhalsky-cfg-content {
+    flex: 1 1 auto;
+    min-width: 0; /* allow the form column to shrink instead of overflowing */
+}
+
+.inpostvonhalsky-cfg-nav__title {
+    margin: 0;
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #8f9bb3;
+}
+
+/* Top-level groups */
+.inpostvonhalsky-cfg-nav__group + .inpostvonhalsky-cfg-nav__group {
+    border-top: 1px solid #f0f2f5;
+}
+
+.inpostvonhalsky-cfg-nav__group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 16px;
+    border: 0;
+    background: none;
+    color: #363a41;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.inpostvonhalsky-cfg-nav__group-header:hover,
+.inpostvonhalsky-cfg-nav__group-header:focus {
+    background: #f6f7f9;
+}
+
+.inpostvonhalsky-cfg-nav__group-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inpostvonhalsky-cfg-nav__chevron {
+    flex: 0 0 auto;
+    margin-left: 8px;
+    color: #8f9bb3;
+    transition: transform 0.15s ease;
+}
+
+.inpostvonhalsky-cfg-nav__chevron::before {
+    content: "\25B8"; /* ▸ */
+}
+
+.inpostvonhalsky-cfg-nav__group.is-open .inpostvonhalsky-cfg-nav__chevron {
+    transform: rotate(90deg);
+}
+
+/* Child links (revealed when a group is open) + single-panel "solo" links */
+.inpostvonhalsky-cfg-nav__items {
+    display: none;
+    padding-bottom: 4px;
+}
+
+.inpostvonhalsky-cfg-nav__group.is-open .inpostvonhalsky-cfg-nav__items {
+    display: block;
+}
+
+.inpostvonhalsky-cfg-nav__items a,
+.inpostvonhalsky-cfg-nav__solo {
+    display: block;
+    border-left: 3px solid transparent;
+    color: #363a41;
+    font-size: 13px;
+    line-height: 1.3;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.inpostvonhalsky-cfg-nav__items a {
+    padding: 7px 16px 7px 30px; /* indented under the group header */
+}
+
+.inpostvonhalsky-cfg-nav__solo {
+    padding: 10px 16px;
+    font-weight: 600;
+}
+
+.inpostvonhalsky-cfg-nav__items a:hover,
+.inpostvonhalsky-cfg-nav__items a:focus,
+.inpostvonhalsky-cfg-nav__solo:hover,
+.inpostvonhalsky-cfg-nav__solo:focus {
+    background: #f6f7f9;
+    color: #25b9d7;
+}
+
+.inpostvonhalsky-cfg-nav__items a.active,
+.inpostvonhalsky-cfg-nav__solo.active {
+    border-left-color: #ffcc00; /* InPost yellow */
+    background: #fff9e0;
+    color: #363a41;
+    font-weight: 600;
+}
+
+/* offset anchored panels so headings clear the fixed admin header */
+#inpostvonhalsky-cfg-wrapper .panel {
+    scroll-margin-top: 70px;
+}
+
+@media (max-width: 991px) {
+    #inpostvonhalsky-cfg-wrapper.inpostvonhalsky-has-nav {
+        display: block;
+    }
+
+    #inpostvonhalsky-cfg-wrapper .inpostvonhalsky-cfg-nav {
+        position: static;
+        flex-basis: auto;
+        max-height: none;
+        margin-bottom: 16px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Warning icons with a hover/focus tooltip (InPost orders grid).
+ * Pure CSS so the look does not depend on the admin theme's tooltip plugin.
+ * The bubble opens to the right of the icon, vertically centred, so it is not
+ * clipped by the grid's scroll container at the top or bottom of the table.
+ * ───────────────────────────────────────────────────────────── */
+.inpost-tip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 2px;
+    vertical-align: middle;
+    cursor: help;
+    outline: none;
+}
+
+.inpost-tip .material-icons {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.inpost-tip--warning .material-icons {
+    color: #f59f00;
+}
+
+.inpost-tip--info .material-icons {
+    color: #25b9d7;
+}
+
+.inpost-tip__text {
+    display: none;
+    position: absolute;
+    z-index: 1060;
+    top: 50%;
+    left: calc(100% + 10px);
+    transform: translateY(-50%);
+    width: 300px;
+    max-width: 60vw;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: #363a41;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    word-wrap: break-word;
+    pointer-events: none;
+}
+
+.inpost-tip__text::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    margin-top: -6px;
+    border: 6px solid transparent;
+    border-right-color: #363a41;
+}
+
+.inpost-tip:hover .inpost-tip__text,
+.inpost-tip:focus .inpost-tip__text {
+    display: block;
+}

@@ -1,0 +1,851 @@
+services:
+  _defaults:
+    public: true
+    autowire: false
+    autoconfigure: true
+
+  # Module services will be defined here
+  Inpost\VonHalsky\:
+    resource: '../src/*'
+    exclude: '../src/{Repository,Entity,Controller}'
+
+    # Phase 1.1: Utility Services
+  Inpost\VonHalsky\Service\Util\LoggerService:
+    arguments:
+      - '@logger'
+      - '@Inpost\VonHalsky\Repository\LogJournalRepository'
+
+  # Status panel journal of warnings/errors (written by LoggerService)
+  Inpost\VonHalsky\Repository\LogJournalRepository:
+    arguments: []
+
+  # Dedicated InPost logger (writes to var/logs/inpost.log)
+  Inpost\VonHalsky\Service\Util\InpostLoggerService:
+    arguments: []
+
+  Inpost\VonHalsky\Service\Util\ConfigurationService:
+    arguments: []
+
+  # Cron Services
+  Inpost\VonHalsky\Service\Cron\JobProgress:
+    arguments: []
+
+  Inpost\VonHalsky\Service\Cron\CronManager:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Service\Cron\JobProgress'
+
+  Inpost\VonHalsky\Service\Cron\CronJobConfigurator:
+    arguments: []
+
+  Inpost\VonHalsky\Service\Cron\OrderSyncJob:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Sync\OrderSyncService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  Inpost\VonHalsky\Service\Cron\OrderEventSyncJob:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\OrderEventsService'
+      - '@Inpost\VonHalsky\Repository\InpostOrderRepository'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Service\Sync\OrderSyncService'
+      - '@Inpost\VonHalsky\Service\Cron\CronManager'
+
+  Inpost\VonHalsky\Service\Cron\OfferSyncJob:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferPriceRecalculator'
+
+  Inpost\VonHalsky\Service\Cron\OfferEventSyncJob:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\OrganizationRepository'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Repository\OfferEventRepository'
+      - '@Inpost\VonHalsky\Service\Api\OfferEventsService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  Inpost\VonHalsky\Service\Cron\CategorySyncJob:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  # GOKINT-928: Pending async create-command poller
+  Inpost\VonHalsky\Service\Cron\PendingCommandSyncJob:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Service\Api\OfferApiService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferAttachmentService'
+
+  # GOKINT-1099: Offer document attachments queue
+  Inpost\VonHalsky\Service\Cron\OfferAttachmentSyncJob:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\OfferAttachmentService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  Inpost\VonHalsky\Repository\OfferAttachmentRepository:
+    arguments: []
+
+  Inpost\VonHalsky\Service\Offer\OfferAttachmentValidator:
+    arguments: []
+
+  Inpost\VonHalsky\Service\Offer\OfferAttachmentStorage:
+    arguments: []
+
+  Inpost\VonHalsky\Service\Offer\OfferAttachmentService:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\OfferAttachmentRepository'
+      - '@Inpost\VonHalsky\Service\Api\OfferApiService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferAttachmentValidator'
+      - '@Inpost\VonHalsky\Service\Offer\OfferAttachmentStorage'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  # API Token Manager
+  Inpost\VonHalsky\Service\ApiTokenManager:
+    arguments: []
+
+  # OAuth2 Service - parameters loaded from PrestaShop Configuration at runtime
+  Inpost\VonHalsky\Service\Auth\OAuth2Service:
+    factory: ['Inpost\VonHalsky\Service\Auth\OAuth2ServiceFactory', 'create']
+
+  # Phase 1.3: API Services
+  Inpost\VonHalsky\Service\Api\OrganizationApiService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Auth\OAuth2Service'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Api\ApiErrorHandler'
+      - '@Inpost\VonHalsky\Service\Api\HttpClientFactory'
+
+  # Category API Service (SDK-based)
+  Inpost\VonHalsky\Service\Api\CategoryApiService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Auth\OAuth2Service'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Api\ApiErrorHandler'
+      - '@Inpost\VonHalsky\Service\Api\HttpClientFactory'
+
+  # Attribute API Service (SDK-based, uses CategoriesApi)
+  Inpost\VonHalsky\Service\Api\AttributeApiService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Auth\OAuth2Service'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Api\ApiErrorHandler'
+      - '@Inpost\VonHalsky\Service\Api\HttpClientFactory'
+
+  # Offer API Service (SDK-based)
+  Inpost\VonHalsky\Service\Api\OfferApiService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Auth\OAuth2Service'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Api\ApiErrorHandler'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+      - '@Inpost\VonHalsky\Service\Api\HttpClientFactory'
+
+  # Offer Events (renamed from EventApiService)
+  Inpost\VonHalsky\Service\Api\OfferEventsService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Auth\OAuth2Service'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Api\ApiErrorHandler'
+      - '@Inpost\VonHalsky\Service\Api\HttpClientFactory'
+
+  # API Error Handler (for SDK-based services)
+  Inpost\VonHalsky\Service\Api\ApiErrorHandler:
+    arguments: []
+
+  # HTTP Client Factory (for SDK-based services)
+  Inpost\VonHalsky\Service\Api\HttpClientFactory:
+    arguments:
+      - '@Inpost\VonHalsky\Helper\Config'
+
+  # Order Services (extend ApiServiceAbstract, use SDK directly)
+  Inpost\VonHalsky\Service\Api\OrdersService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Auth\OAuth2Service'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Api\ApiErrorHandler'
+      - '@Inpost\VonHalsky\Service\Api\HttpClientFactory'
+
+  Inpost\VonHalsky\Service\Api\OrderEventsService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Auth\OAuth2Service'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Api\ApiErrorHandler'
+      - '@Inpost\VonHalsky\Service\Api\HttpClientFactory'
+
+  # Phase 2.1: Mapping Services
+  Inpost\VonHalsky\Service\Mapping\CategoryMappingService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\CategoryApiService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Helper\Config'
+
+  Inpost\VonHalsky\Service\Mapping\AttributeMappingService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\AttributeApiService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  # PrestaShop features / attribute groups as attribute value sources
+  Inpost\VonHalsky\Service\Mapping\PsAttributeSourceProvider:
+    arguments:
+      - '@Inpost\VonHalsky\Helper\Config'
+
+  Inpost\VonHalsky\Service\Mapping\AttributeSourceMappingService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\PsAttributeSourceProvider'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Mapping\Suggest\AttributeSuggester'
+
+  # Mapping assistant: fuzzy suggestions for category / attribute mapping
+  Inpost\VonHalsky\Service\Mapping\Suggest\CategorySuggester: ~
+
+  Inpost\VonHalsky\Service\Mapping\Suggest\AttributeSuggester: ~
+
+  Inpost\VonHalsky\Service\Mapping\Suggest\CategoryAssistantService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\Suggest\CategorySuggester'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Helper\Config'
+
+  Inpost\VonHalsky\Service\Mapping\Suggest\AttributeAssistantService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\Suggest\AttributeSuggester'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\PsAttributeSourceProvider'
+      - '@Inpost\VonHalsky\Helper\Config'
+
+  # Built-in product fields (reference, MPN, EAN, weight...) as a value source
+  Inpost\VonHalsky\Service\Offer\ProductFieldReader:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\PsAttributeSourceProvider'
+      - '@Inpost\VonHalsky\Helper\Config'
+
+  Inpost\VonHalsky\Service\Offer\ProductAttributeValueResolver:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\PsAttributeSourceProvider'
+      - '@Inpost\VonHalsky\Service\Offer\ProductFieldReader'
+
+  # Phase 2.3: Business Logic Services
+  Inpost\VonHalsky\Service\Business\OfferBuilderService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Service\Util\ShopTaxCurrencyInfo'
+      - '@Inpost\VonHalsky\Service\Offer\ProductAttributeValueResolver'
+      - '@Inpost\VonHalsky\Service\Offer\HintApplyService'
+      - '@Inpost\VonHalsky\Service\Sync\PsPriceStockReader'
+      - '@Inpost\VonHalsky\Service\Offer\ProductCombinationService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductFieldReader'
+      - '@Inpost\VonHalsky\Service\Offer\OfferPriceResolver'
+
+  Inpost\VonHalsky\Service\Util\ShopTaxCurrencyInfo:
+    arguments: []
+
+  Inpost\VonHalsky\Service\Business\OfferValidatorService:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\CategoryMappingRepository'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Repository\OfferGpsrRepository'
+      - '@Inpost\VonHalsky\Service\Util\ShopTaxCurrencyInfo'
+
+  # Legacy diagnostic service - listing/deleting attachments uploaded by older module versions
+  Inpost\VonHalsky\Service\Offer\ImageAttachmentService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\OfferApiService'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+
+  # Unified Offer Service - handles sending, validation, status refresh
+  Inpost\VonHalsky\Service\Offer\OfferService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Business\OfferBuilderService'
+      - '@Inpost\VonHalsky\Service\Business\OfferValidatorService'
+      - '@Inpost\VonHalsky\Service\Api\OfferApiService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Service\Sync\ProductOfferSyncService'
+
+  # GOKINT-927: Productization (/hints) services
+  Inpost\VonHalsky\Repository\ProductHintCacheRepository:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  Inpost\VonHalsky\Service\Offer\ProductHintService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\OfferApiService'
+      - '@Inpost\VonHalsky\Repository\ProductHintCacheRepository'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  Inpost\VonHalsky\Service\Offer\HintAttributeMapper:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  Inpost\VonHalsky\Service\Offer\HintApplyService:
+    arguments:
+      - '@doctrine.orm.entity_manager'
+
+  Inpost\VonHalsky\Service\Offer\HintProductizationService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\ProductHintService'
+      - '@Inpost\VonHalsky\Service\Offer\HintAttributeMapper'
+      - '@Inpost\VonHalsky\Service\Offer\HintApplyService'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  # Change the InPost category of an existing offer
+  Inpost\VonHalsky\Service\Offer\OfferCategoryChangeService:
+    arguments:
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Repository\CategoryMappingRepository'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductAttributeValueResolver'
+      - '@Inpost\VonHalsky\Service\Offer\HintApplyService'
+      - '@Inpost\VonHalsky\Service\Offer\HintAttributeMapper'
+      - '@Inpost\VonHalsky\Service\Offer\ProductHintService'
+      - '@Inpost\VonHalsky\Service\Offer\HintProductizationService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductCombinationService'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  # GOKINT-1102: Set / clear / restore one attribute on many offers
+  Inpost\VonHalsky\Service\Offer\BulkAttributeEditService:
+    arguments:
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Service\Offer\OfferCategoryChangeService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductAttributeValueResolver'
+      - '@Inpost\VonHalsky\Service\Sync\ProductOfferSyncService'
+      - '@Inpost\VonHalsky\Service\Mapping\PsAttributeSourceProvider'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  # GOKINT-930: Bulk offer creation services
+  Inpost\VonHalsky\Service\Offer\ProductPreValidationService:
+    arguments:
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductAttributeValueResolver'
+      - '@Inpost\VonHalsky\Service\Offer\ProductCombinationService'
+
+  Inpost\VonHalsky\Service\Offer\BulkOfferCreationService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Business\OfferBuilderService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductPreValidationService'
+      - '@Inpost\VonHalsky\Service\Business\OfferValidatorService'
+      - '@Inpost\VonHalsky\Service\Offer\HintProductizationService'
+      - '@Inpost\VonHalsky\Repository\OrganizationRepository'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  # Real-time product to offer synchronization (replaces cron-based updates)
+  Inpost\VonHalsky\Service\Sync\ProductOfferSyncService:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductAttributeValueResolver'
+      - '@Inpost\VonHalsky\Service\Offer\HintApplyService'
+      - '@Inpost\VonHalsky\Service\Sync\PsPriceStockReader'
+      - '@Inpost\VonHalsky\Service\Offer\OfferPriceResolver'
+
+  Inpost\VonHalsky\Service\Sync\PsPriceStockReader:
+    arguments: []
+
+  # GOKINT-1098: dedicated InPost price (manual price, customer group, % rule)
+  Inpost\VonHalsky\Service\Offer\OfferPriceResolver:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Sync\PsPriceStockReader'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+
+  Inpost\VonHalsky\Service\Offer\BulkPriceEditService:
+    arguments:
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Service\Offer\OfferPriceResolver'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  Inpost\VonHalsky\Service\Offer\OfferPriceRecalculator:
+    arguments:
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Service\Offer\OfferPriceResolver'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  # Offers per PrestaShop combination
+  Inpost\VonHalsky\Service\Offer\ProductCombinationService:
+    arguments:
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Sync\PsPriceStockReader'
+
+  # Order Sync Services
+  Inpost\VonHalsky\Service\Sync\OrderSyncService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\OrdersService'
+      - '@Inpost\VonHalsky\Service\Sync\Order\PrestaShopOrderCreator'
+      - '@Inpost\VonHalsky\Repository\InpostOrderRepository'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\Shipx\ShipXIntegrationService'
+      - '@Inpost\VonHalsky\Service\Cron\JobProgress'
+
+  # InPost ShipX (inpostshipping) integration
+  Inpost\VonHalsky\Service\Shipx\ShipXIntegrationService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+
+  Inpost\VonHalsky\Service\Sync\Order\PrestaShopOrderCreator:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\InpostOrderRepository'
+      - '@Inpost\VonHalsky\Factory\CartFactory'
+
+  # Factory
+  Inpost\VonHalsky\Factory\CartFactory:
+    arguments: []
+
+  # Phase 3: Console Commands
+  Inpost\VonHalsky\Command\SyncCategoriesCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\CategoryApiService'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\SendOfferCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\OfferAttachmentsCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\OfferApiService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferAttachmentService'
+      - '@Inpost\VonHalsky\Repository\OfferAttachmentRepository'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\OfferImagesCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\OfferApiService'
+      - '@Inpost\VonHalsky\Service\Offer\ImageAttachmentService'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\SyncOffersCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+      - '@Inpost\VonHalsky\Helper\Config'
+    tags:
+      - { name: 'console.command' }
+
+  # Refresh single offer from API (like Magento's inpost:offer:refresh)
+  Inpost\VonHalsky\Command\RefreshOfferCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\SyncOfferEventsCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Cron\OfferEventSyncJob'
+      - '@Inpost\VonHalsky\Service\Cron\CronManager'
+      - '@Inpost\VonHalsky\Service\Cron\CronJobConfigurator'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\CronSyncCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Cron\CronManager'
+      - '@Inpost\VonHalsky\Service\Cron\CronJobConfigurator'
+      - [
+          '@Inpost\VonHalsky\Service\Cron\OrderSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OrderEventSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferEventSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\CategorySyncJob',
+          '@Inpost\VonHalsky\Service\Cron\PendingCommandSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferAttachmentSyncJob'
+        ]
+    tags:
+      - { name: 'console.command' }
+
+  # GOKINT-938: Async command diagnostic CLI
+  Inpost\VonHalsky\Command\SyncCommandsCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\OfferApiService'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Service\Cron\PendingCommandSyncJob'
+      - '@Inpost\VonHalsky\Service\Cron\CronManager'
+      - '@Inpost\VonHalsky\Service\Cron\CronJobConfigurator'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\OrderSyncCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Sync\OrderSyncService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Service\Cron\CronManager'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\MappingSuggestCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\Suggest\CategoryAssistantService'
+      - '@Inpost\VonHalsky\Service\Mapping\Suggest\AttributeAssistantService'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\StatusCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Auth\OAuth2Service'
+      - '@Inpost\VonHalsky\Service\Api\OrganizationApiService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\ApiTokenManager'
+    tags:
+      - { name: 'console.command' }
+
+  Inpost\VonHalsky\Command\GetOrderCommand:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Api\OrdersService'
+      - '@Inpost\VonHalsky\Service\Util\ConfigurationService'
+      - '@Inpost\VonHalsky\Service\ApiTokenManager'
+    tags:
+      - { name: 'console.command' }
+
+  # Phase 4: Admin Controllers
+  Inpost\VonHalsky\Controller\Admin\OfferController:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Repository\OrganizationRepository'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Business\OfferBuilderService'
+      - '@Inpost\VonHalsky\Service\Business\OfferValidatorService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Repository\CategoryMappingRepository'
+      - '@Inpost\VonHalsky\Service\Offer\ProductHintService'
+      - '@Inpost\VonHalsky\Service\Offer\HintAttributeMapper'
+      - '@Inpost\VonHalsky\Service\Offer\HintApplyService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductAttributeValueResolver'
+      - '@Inpost\VonHalsky\Service\Offer\ProductCombinationService'
+      - '@Inpost\VonHalsky\Service\Offer\ProductPreValidationService'
+      - '@Inpost\VonHalsky\Service\Offer\BulkOfferCreationService'
+      - '@Inpost\VonHalsky\Service\Offer\HintProductizationService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferCategoryChangeService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferPriceResolver'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\CategoryMappingController:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\CategoryLinkRepository'
+      - '@Inpost\VonHalsky\Repository\CategoryMappingRepository'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeSourceMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\Suggest\CategoryAssistantService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\AttributeMappingController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeMappingService'
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\AttributeSourceMappingService'
+      - '@Inpost\VonHalsky\Service\Mapping\Suggest\AttributeAssistantService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  # Orders Controller
+  Inpost\VonHalsky\Controller\Admin\InpostOrdersController:
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  # Phase 4: AJAX Controllers
+  Inpost\VonHalsky\Controller\Admin\Ajax\ProductAutocompleteController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Util\LoggerService'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Offer\ProductCombinationService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\Ajax\EventController:
+    arguments:
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Repository\OfferEventRepository'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\Ajax\OfferStatusController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  # GOKINT-927: Productization hint AJAX controller
+  Inpost\VonHalsky\Controller\Admin\Ajax\OfferHintController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\ProductHintService'
+      - '@Inpost\VonHalsky\Service\Offer\HintAttributeMapper'
+      - '@Inpost\VonHalsky\Service\Offer\HintApplyService'
+      - '@Inpost\VonHalsky\Service\Mapping\CategoryMappingService'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@doctrine.orm.entity_manager'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\Ajax\OfferCategoryController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\OfferCategoryChangeService'
+      - '@Inpost\VonHalsky\Repository\OfferRepository'
+      - '@Inpost\VonHalsky\Repository\CategoryMappingRepository'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\Ajax\OfferAttachmentController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\OfferAttachmentService'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\Ajax\OfferBulkAttributeController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\BulkAttributeEditService'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\Ajax\OfferBulkPriceController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\BulkPriceEditService'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  # GOKINT-930: Bulk offer wizard + AJAX controllers
+  Inpost\VonHalsky\Controller\Admin\BulkOfferController:
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Controller\Admin\Ajax\BulkOfferController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Offer\ProductPreValidationService'
+      - '@Inpost\VonHalsky\Service\Offer\BulkOfferCreationService'
+      - '@Inpost\VonHalsky\Service\Offer\OfferService'
+      - '@Inpost\VonHalsky\Service\Offer\HintProductizationService'
+      - '@Inpost\VonHalsky\Helper\Config'
+      - '@Inpost\VonHalsky\Service\Util\InpostLoggerService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  # Doctrine Repositories
+  Inpost\VonHalsky\Repository\OfferRepository:
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: ['Inpost\VonHalsky\Entity\Offer']
+
+  Inpost\VonHalsky\Repository\OrganizationRepository:
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: ['Inpost\VonHalsky\Entity\Organization']
+
+  Inpost\VonHalsky\Repository\CategoryLinkRepository:
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: ['Inpost\VonHalsky\Entity\CategoryLink']
+
+  Inpost\VonHalsky\Repository\CategoryMappingRepository:
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: ['Inpost\VonHalsky\Entity\CategoryMapping']
+
+  Inpost\VonHalsky\Repository\AttributeRepository:
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: ['Inpost\VonHalsky\Entity\Attribute']
+
+  Inpost\VonHalsky\Repository\OfferEventRepository:
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: ['Inpost\VonHalsky\Entity\OfferEvent']
+
+  Inpost\VonHalsky\Repository\OfferGpsrRepository:
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: ['Inpost\VonHalsky\Entity\OfferGpsr']
+
+  Inpost\VonHalsky\Repository\InpostOrderRepository:
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: ['Inpost\VonHalsky\Entity\InpostOrder']
+
+  # Grid Services
+  inpost.grid.filter.form_factory:
+    class: PrestaShop\PrestaShop\Core\Grid\Filter\FilterFormFactoryFormActionDecorator
+    arguments:
+      - '@prestashop.core.grid.filter.form_factory'
+      - '@router'
+      - 'admin_inpost_orders_search'
+
+  inpost.grid.factory.inpost_orders:
+    class: PrestaShop\PrestaShop\Core\Grid\GridFactory
+    arguments:
+      - '@prestashop.core.grid.definition.factory.inpost_orders'
+      - '@Inpost\VonHalsky\Grid\Data\Factory\InpostOrdersGridDataFactory'
+      - '@inpost.grid.filter.form_factory'
+      - '@prestashop.core.hook.dispatcher'
+
+  prestashop.core.grid.definition.factory.inpost_orders:
+    class: Inpost\VonHalsky\Grid\Definition\Factory\InpostOrdersGridDefinitionFactory
+    arguments:
+      - '@prestashop.core.hook.dispatcher'
+    calls:
+      - [setTranslator, ['@translator']]
+
+  Inpost\VonHalsky\Grid\Data\Factory\InpostOrdersGridDataFactory:
+    arguments:
+      - '@Inpost\VonHalsky\Grid\Query\InpostOrdersQueryBuilder'
+      - '@prestashop.core.hook.dispatcher'
+      - '@prestashop.core.grid.query.doctrine_query_parser'
+      - 'inpost_orders'
+      - '@Inpost\VonHalsky\Service\Status\OrderWarnings'
+
+  Inpost\VonHalsky\Service\Status\OrderWarnings:
+    arguments:
+      - '@translator'
+
+  Inpost\VonHalsky\Grid\Query\InpostOrdersQueryBuilder:
+    arguments:
+      - '@doctrine.dbal.default_connection'
+      - '%database_prefix%'
+      - '@=service("prestashop.adapter.legacy.context").getContext().language.id'
+      - '@=service("prestashop.adapter.legacy.context").getContext().shop.id'
+
+  # Phase 4: Form Types
+  Inpost\VonHalsky\Form\Type\OfferType:
+    tags:
+      - { name: form.type }
+
+  # Doctrine Table Prefix Subscriber
+  Inpost\VonHalsky\Doctrine\TablePrefixSubscriber:
+    tags:
+      - { name: doctrine.event_subscriber }
+
+  # Integration status panel
+  Inpost\VonHalsky\Service\Status\IntegrationStatusService:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Cron\CronManager'
+      - '@Inpost\VonHalsky\Service\Cron\CronJobConfigurator'
+      - '@Inpost\VonHalsky\Repository\LogJournalRepository'
+      - '@Inpost\VonHalsky\Service\ApiTokenManager'
+      - '@translator'
+      - '@Inpost\VonHalsky\Service\Util\ShopTaxCurrencyInfo'
+      - '@Inpost\VonHalsky\Service\Status\OrderWarnings'
+      - [
+          '@Inpost\VonHalsky\Service\Cron\OrderSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OrderEventSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferEventSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\CategorySyncJob',
+          '@Inpost\VonHalsky\Service\Cron\PendingCommandSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferAttachmentSyncJob'
+        ]
+
+  Inpost\VonHalsky\Controller\Admin\StatusController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Status\IntegrationStatusService'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }
+
+  Inpost\VonHalsky\Service\Status\JobMonitor:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Cron\CronManager'
+      - '@Inpost\VonHalsky\Service\Cron\CronJobConfigurator'
+      - '@Inpost\VonHalsky\Service\Cron\JobProgress'
+      - '@translator'
+      - [
+          '@Inpost\VonHalsky\Service\Cron\OrderSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OrderEventSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferEventSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\CategorySyncJob',
+          '@Inpost\VonHalsky\Service\Cron\PendingCommandSyncJob',
+          '@Inpost\VonHalsky\Service\Cron\OfferAttachmentSyncJob'
+        ]
+
+  Inpost\VonHalsky\Controller\Admin\JobsController:
+    arguments:
+      - '@Inpost\VonHalsky\Service\Status\JobMonitor'
+    calls:
+      - [setContainer, ['@service_container']]
+    tags:
+      - { name: 'controller.service_arguments' }

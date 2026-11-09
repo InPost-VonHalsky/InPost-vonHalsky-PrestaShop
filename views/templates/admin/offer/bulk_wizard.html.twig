@@ -1,0 +1,96 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+<div class="inpost-bulk-wizard"
+     data-product-ids="{{ product_ids|json_encode()|e('html_attr') }}"
+     data-chunk-size="{{ chunk_size }}"
+     data-validate-url="{{ validate_url }}"
+     data-create-url="{{ create_url }}"
+     data-publish-url="{{ publish_url }}"
+     data-offer-edit-url="{{ offer_edit_url }}">
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="page-title">
+                <i class="material-icons">playlist_add</i>
+                {{ 'Bulk list products on InPost'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </h1>
+        </div>
+    </div>
+
+    {% if product_ids is empty %}
+        <div class="alert alert-warning">
+            <i class="material-icons">warning</i>
+            {{ 'No products selected. Select products in the Catalog and use "List on InPost".'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+        </div>
+    {% else %}
+
+    {# Panel 1: the selected products, checked right away (pre-validation) #}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">
+                {{ 'Selected products'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                <span class="badge badge-primary ml-1">{{ product_ids|length }}</span>
+            </h3>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="bulk-validate-btn"
+                    title="{{ 'Check the products again, e.g. after fixing them in the catalog'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                <i class="material-icons" style="font-size: 16px; vertical-align: middle;">refresh</i>
+                {{ 'Check again'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </button>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-2">
+                {{ 'Each product is checked before its draft offer is created. Blocked products are skipped; untick anything you do not want to list.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                {{ 'Products with combinations are listed per variant - each selected variant becomes its own offer. Variants with an EAN and stock are preselected.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </p>
+            <div class="progress mb-2" style="display:none;" id="bulk-validate-progress-wrap">
+                <div class="progress-bar" id="bulk-validate-progress" role="progressbar" style="width:0%">0%</div>
+            </div>
+            <div id="bulk-validate-summary" class="mb-2"></div>
+            <table class="table table-sm" id="bulk-validate-table" style="display:none;">
+                <thead><tr>
+                    <th style="width: 40px;"></th>
+                    <th>{{ 'Product'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                    <th>{{ 'Status'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                    <th>{{ 'Details'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                </tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    {# Panel 2: create + publish #}
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ 'Create draft offers'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</h3></div>
+        <div class="card-body">
+            <div id="bulk-selection-summary" class="mb-2 text-muted"></div>
+            <button type="button" class="btn btn-success" id="bulk-create-btn" disabled>{{ 'Create drafts for the selected products'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</button>
+            <button type="button" class="btn btn-outline-secondary ml-2" id="bulk-copy-csv-btn" style="display:none;">{{ 'Copy results as CSV'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</button>
+            <div class="progress my-2" style="display:none;" id="bulk-create-progress-wrap">
+                <div class="progress-bar bg-success" id="bulk-create-progress" role="progressbar" style="width:0%">0%</div>
+            </div>
+            <div id="bulk-create-summary" class="mb-2"></div>
+            <table class="table table-sm" id="bulk-create-table" style="display:none;">
+                <thead><tr>
+                    <th>{{ 'Product ID'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                    <th>{{ 'Result'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                    <th>{{ 'Offer ID'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                    <th>{{ 'Message'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                </tr></thead>
+                <tbody></tbody>
+            </table>
+            <hr>
+            <button type="button" class="btn btn-primary" id="bulk-publish-btn" style="display:none;">{{ 'Publish created offers to InPost'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</button>
+            <div id="bulk-publish-summary" class="mt-2"></div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% include '@Modules/inpostvonhalsky/views/templates/admin/_partials/js_i18n.html.twig' %}
+    <script src="{{ module_js_path }}bulk-offers.js"></script>
+{% endblock %}

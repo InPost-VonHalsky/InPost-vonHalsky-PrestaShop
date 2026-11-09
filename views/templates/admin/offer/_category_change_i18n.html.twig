@@ -1,0 +1,32 @@
+{#
+/**
+ * Translations for views/js/offer-category-change.js
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+<script>
+  window.InpostI18n = Object.assign(window.InpostI18n || {}, {{ {
+    'Searching...': 'Searching...'|trans({}, d),
+    'No results.': 'No results.'|trans({}, d),
+    'Search failed': 'Search failed'|trans({}, d),
+    'Loading...': 'Loading...'|trans({}, d),
+    'Request failed': 'Request failed'|trans({}, d),
+    'New category:': 'New category:'|trans({}, d),
+    'The offer is already in this category.': 'The offer is already in this category.'|trans({}, d),
+    'Removed (the new category does not have them):': 'Removed (the new category does not have them):'|trans({}, d),
+    'Kept:': 'Kept:'|trans({}, d),
+    'New attributes:': 'New attributes:'|trans({}, d),
+    'required': 'required'|trans({}, d),
+    'from PrestaShop': 'from PrestaShop'|trans({}, d),
+    'from the InPost catalogue': 'from the InPost catalogue'|trans({}, d),
+    'to fill in': 'to fill in'|trans({}, d),
+    '%count% attribute(s) of the new category have no PrestaShop source mapped - map them to fill values automatically.': '%count% attribute(s) of the new category have no PrestaShop source mapped - map them to fill values automatically.'|trans({}, d),
+    'Other variants of the product: %count% - you can move them too in the next step.': 'Other variants of the product: %count% - you can move them too in the next step.'|trans({}, d),
+    'The offer is already in InPost: after saving it is sent with the new category, and InPost may review it again.': 'The offer is already in InPost: after saving it is sent with the new category, and InPost may review it again.'|trans({}, d),
+    'none': 'none'|trans({}, d)
+  }|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }});
+</script>

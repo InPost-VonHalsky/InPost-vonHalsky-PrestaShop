@@ -1,0 +1,66 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('../modules/inpostvonhalsky/views/css/mapping_assistant.css') }}?v={{ 'now'|date('YmdHis') }}"/>
+{% endblock %}
+
+{% block content %}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+<div class="inpost-attribute-mapping-view">
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type == 'error' ? 'danger' : type }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="row mb-3">
+        <div class="col-12 d-flex flex-wrap justify-content-between align-items-start">
+            <div>
+                <h1 class="page-title">
+                    <i class="material-icons">tune</i>
+                    {{ 'Attribute mapping assistant'|trans({}, d) }}
+                </h1>
+                <p class="text-muted mb-2">
+                    {{ 'InPost attributes of your mapped categories, grouped by name. For each one pick the shop feature or attribute that holds its value - suggestions compare names and values.'|trans({}, d) }}
+                </p>
+            </div>
+            <div class="mb-2">
+                <a class="btn btn-outline-secondary btn-sm" href="{{ path('inpost_category_mapping_list', {'view': 'assistant'}) }}">
+                    <i class="material-icons" style="font-size:16px;vertical-align:-3px;">arrow_back</i> {{ 'Category mapping'|trans({}, d) }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="inpost-attribute-assistant"
+         data-data="{{ path('inpost_attribute_mapping_assistant_data') }}"
+         data-values="{{ path('inpost_attribute_mapping_assistant_values') }}"
+         data-apply="{{ path('inpost_attribute_mapping_assistant_apply') }}"
+         data-apply-bulk="{{ path('inpost_attribute_mapping_assistant_apply_bulk') }}"
+         data-save-values="{{ path('inpost_attribute_mapping_assistant_save_values') }}"
+         data-categories="{{ path('inpost_category_mapping_list', {'view': 'assistant'}) }}"
+         data-category="{{ category_filter }}">
+        <div class="card">
+            <div class="card-body">
+                <div class="ia-summary"></div>
+                <div class="ia-toolbar">
+                    <select class="form-control form-control-sm js-category">
+                        <option value="{{ category_filter }}" selected></option>
+                    </select>
+                    <label class="mb-0 ia-muted"><input type="checkbox" class="js-required"> {{ 'Only required'|trans({}, d) }}</label>
+                    <button type="button" class="btn btn-link btn-sm js-reload ml-auto"><i class="material-icons" style="font-size:16px;vertical-align:-3px;">refresh</i> {{ 'Recalculate'|trans({}, d) }}</button>
+                </div>
+                <div class="ia-bulk-wrap"></div>
+                <div class="ia-body"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% include '@Modules/inpostvonhalsky/views/templates/admin/_partials/assistant_i18n.html.twig' %}
+    <script src="{{ asset('../modules/inpostvonhalsky/views/js/attribute_assistant.js') }}?v={{ 'now'|date('YmdHis') }}"></script>
+{% endblock %}

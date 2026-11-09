@@ -1,0 +1,376 @@
+{#
+/**
+ * InPost Order View Template
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <h3 class="card-header">
+          <i class="material-icons">local_shipping</i>
+          {{ 'InPost Order Details'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+          <div class="float-right">
+            <a href="{{ path('admin_inpost_orders_index') }}" class="btn btn-sm btn-outline-secondary">
+              <i class="material-icons">arrow_back</i>
+              {{ 'Back to list'|trans({}, 'Admin.Actions') }}
+            </a>
+          </div>
+        </h3>
+
+        <div class="card-body">
+          {# Quick Summary Row #}
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <h6 class="text-muted mb-2">{{ 'Status'|trans({}, 'Admin.Global') }}</h6>
+                  <span class="badge badge-{{ inpostOrder.status == 'delivered' ? 'success' : (inpostOrder.status == 'cancelled' ? 'danger' : (inpostOrder.status == 'ACCEPTED' ? 'info' : 'warning')) }} badge-lg" style="font-size: 1.1em; padding: 0.5em 1em;">
+                    {{ inpostOrder.status|upper }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <h6 class="text-muted mb-2">{{ 'InPost Order ID'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</h6>
+                  <strong style="font-size: 1.1em;">{{ inpostOrder.inpost_order_id|default('N/A') }}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <h6 class="text-muted mb-2">{{ 'Final Price'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</h6>
+                  {% if shipmentDetails and shipmentDetails.final_price is defined and shipmentDetails.final_price %}
+                    <span class="badge badge-success badge-lg" style="font-size: 1.2em; padding: 0.5em 1em;">
+                      {{ shipmentDetails.final_price.amount|number_format(2, '.', ',') }} {{ shipmentDetails.final_price.currency }}
+                    </span>
+                  {% else %}
+                    <span class="text-muted">{{ 'N/A'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          {% if shipmentDetails %}
+            {# Order Lines - Products #}
+            {% if shipmentDetails.order_lines %}
+              <div class="row mt-4">
+                <div class="col-12">
+                  <div class="card border-primary">
+                    <h4 class="card-header bg-primary text-white">
+                      <i class="material-icons">shopping_cart</i>
+                      {{ 'Ordered Products'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </h4>
+                    <div class="card-body">
+                      <table class="table table-hover table-bordered">
+                        <thead class="thead-dark">
+                          <tr>
+                            <th style="width: 50%;">{{ 'Product Name'|trans({}, 'Admin.Catalog.Feature') }}</th>
+                            <th style="width: 20%;">{{ 'SKU'|trans({}, 'Admin.Catalog.Feature') }}</th>
+                            <th style="width: 15%;">{{ 'EAN'|trans({}, 'Admin.Catalog.Feature') }}</th>
+                            <th style="width: 15%;" class="text-right">{{ 'Price'|trans({}, 'Admin.Global') }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for line in shipmentDetails.order_lines %}
+                            {% if line.offer is defined and line.offer %}
+                              <tr>
+                                <td><strong>{{ line.offer.product.name|default('N/A') }}</strong></td>
+                                <td><code>{{ line.offer.product.sku|default('N/A') }}</code></td>
+                                <td><small>{{ line.offer.product.ean|default('N/A') }}</small></td>
+                                <td class="text-right">
+                                  {% if line.offer.price is defined and line.offer.price %}
+                                    <strong>{{ line.offer.price.amount|number_format(2, '.', ',') }} {{ line.offer.price.currency }}</strong>
+                                  {% else %}
+                                    N/A
+                                  {% endif %}
+                                </td>
+                              </tr>
+                            {% endif %}
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+
+            {# Customer, Delivery & Invoice Details #}
+            {% set invoice = shipmentDetails.invoice is defined and shipmentDetails.invoice ? shipmentDetails.invoice : null %}
+            {% set addressColumn = invoice ? 'col-lg-4' : 'col-md-6' %}
+            <div class="row mt-4">
+              {% if shipmentDetails.customer %}
+                <div class="{{ addressColumn }}">
+                  <div class="card h-100">
+                    <h5 class="card-header bg-info text-white">
+                      <i class="material-icons">person</i>
+                      {{ 'Customer Information'|trans({}, 'Admin.Orderscustomers.Feature') }}
+                    </h5>
+                    <div class="card-body">
+                      <table class="table table-sm">
+                        <tbody>
+                          <tr>
+                            <th style="width: 35%;">{{ 'Name'|trans({}, 'Admin.Global') }}</th>
+                            <td><strong>{{ shipmentDetails.customer.firstName|default('') }} {{ shipmentDetails.customer.lastName|default('') }}</strong></td>
+                          </tr>
+                          <tr>
+                            <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">email</i> {{ 'Email'|trans({}, 'Admin.Global') }}</th>
+                            <td>
+                              {% if shipmentDetails.customer.email is defined and shipmentDetails.customer.email %}
+                                <a href="mailto:{{ shipmentDetails.customer.email }}">{{ shipmentDetails.customer.email }}</a>
+                              {% else %}
+                                N/A
+                              {% endif %}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">phone</i> {{ 'Phone'|trans({}, 'Admin.Global') }}</th>
+                            <td>
+                              {% if shipmentDetails.customer.phoneNumber is defined and shipmentDetails.customer.phoneNumber %}
+                                <a href="tel:{{ shipmentDetails.customer.phoneNumber }}">{{ shipmentDetails.customer.phoneNumber }}</a>
+                              {% else %}
+                                N/A
+                              {% endif %}
+                            </td>
+                          </tr>
+                          {% if shipmentDetails.customer.address is defined and shipmentDetails.customer.address %}
+                            <tr>
+                              <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">home</i> {{ 'Address'|trans({}, 'Admin.Global') }}</th>
+                              <td>
+                                {{ shipmentDetails.customer.address.street|default('') }} {{ shipmentDetails.customer.address.building|default('') }}{% if shipmentDetails.customer.address.flat is defined and shipmentDetails.customer.address.flat %}/{{ shipmentDetails.customer.address.flat }}{% endif %}<br>
+                                {{ shipmentDetails.customer.address.postCode|default('') }} {{ shipmentDetails.customer.address.city|default('') }}<br>
+                                <strong>{{ shipmentDetails.customer.address.countryCode|default('') }}</strong>
+                              </td>
+                            </tr>
+                          {% endif %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if shipmentDetails.delivery %}
+                <div class="{{ addressColumn }}">
+                  <div class="card h-100">
+                    <h5 class="card-header bg-warning text-dark">
+                      <i class="material-icons">local_shipping</i>
+                      {{ 'Delivery Information'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </h5>
+                    <div class="card-body">
+                      <table class="table table-sm">
+                        <tbody>
+                          <tr>
+                            <th style="width: 40%;">{{ 'Delivery Type'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            <td><span class="badge badge-secondary">{{ shipmentDetails.delivery.deliveryType|default('N/A') }}</span></td>
+                          </tr>
+                          <tr>
+                            <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">place</i> {{ 'Delivery Point'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            <td><strong>{{ shipmentDetails.delivery.deliveryPoint|default('N/A') }}</strong></td>
+                          </tr>
+                          {% if shipmentDetails.delivery.address is defined and shipmentDetails.delivery.address %}
+                            <tr>
+                              <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">location_on</i> {{ 'Locker Address'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                              <td>
+                                {{ shipmentDetails.delivery.address.street|default('') }} {{ shipmentDetails.delivery.address.building|default('') }}{% if shipmentDetails.delivery.address.flat is defined and shipmentDetails.delivery.address.flat %}/{{ shipmentDetails.delivery.address.flat }}{% endif %}<br>
+                                {{ shipmentDetails.delivery.address.postCode|default('') }} {{ shipmentDetails.delivery.address.city|default('') }}<br>
+                                <strong>{{ shipmentDetails.delivery.address.countryCode|default('') }}</strong>
+                              </td>
+                            </tr>
+                          {% endif %}
+                          {% if shipmentDetails.delivery.price is defined and shipmentDetails.delivery.price %}
+                            <tr>
+                              <th>{{ 'Delivery Cost'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                              <td><strong>{{ shipmentDetails.delivery.price.amount|number_format(2, '.', ',') }} {{ shipmentDetails.delivery.price.currency }}</strong></td>
+                            </tr>
+                          {% endif %}
+                          {% if shipmentDetails.delivery.expectedDeliveryDate is defined and shipmentDetails.delivery.expectedDeliveryDate %}
+                            <tr>
+                              <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">event</i> {{ 'Expected Delivery'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                              <td>{{ shipmentDetails.delivery.expectedDeliveryDate|date('Y-m-d H:i') }}</td>
+                            </tr>
+                          {% endif %}
+                          {% if shipmentDetails.delivery.email is defined and shipmentDetails.delivery.email %}
+                            <tr>
+                              <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">email</i> {{ 'Contact Email'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                              <td><a href="mailto:{{ shipmentDetails.delivery.email }}">{{ shipmentDetails.delivery.email }}</a></td>
+                            </tr>
+                          {% endif %}
+                          {% if shipmentDetails.delivery.phoneNumber is defined and shipmentDetails.delivery.phoneNumber %}
+                            <tr>
+                              <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">phone</i> {{ 'Contact Phone'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                              <td><a href="tel:{{ shipmentDetails.delivery.phoneNumber }}">{{ shipmentDetails.delivery.phoneNumber }}</a></td>
+                            </tr>
+                          {% endif %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if invoice %}
+                <div class="{{ addressColumn }}">
+                  <div class="card h-100">
+                    <h5 class="card-header bg-secondary text-white">
+                      <i class="material-icons">receipt</i>
+                      {{ 'Invoice Details'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </h5>
+                    <div class="card-body">
+                      <table class="table table-sm">
+                        <tbody>
+                          {% if invoice.legalForm is defined and invoice.legalForm %}
+                            <tr>
+                              <th style="width: 35%;">{{ 'Legal Form'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                              <td><span class="badge badge-secondary">{{ invoice.legalForm == 'COMPANY' ? 'Company'|trans({}, 'Admin.Global') : invoice.legalForm }}</span></td>
+                            </tr>
+                          {% endif %}
+                          {% if invoice.companyName is defined and invoice.companyName %}
+                            <tr>
+                              <th style="width: 35%;">{{ 'Company'|trans({}, 'Admin.Global') }}</th>
+                              <td><strong>{{ invoice.companyName }}</strong></td>
+                            </tr>
+                          {% endif %}
+                          {% if (invoice.firstName is defined and invoice.firstName) or (invoice.lastName is defined and invoice.lastName) %}
+                            <tr>
+                              <th style="width: 35%;">{{ 'Name'|trans({}, 'Admin.Global') }}</th>
+                              <td><strong>{{ invoice.firstName|default('') }} {{ invoice.lastName|default('') }}</strong></td>
+                            </tr>
+                          {% endif %}
+                          {% if invoice.taxId is defined and invoice.taxId %}
+                            <tr>
+                              <th style="width: 35%;">{{ 'Tax ID (NIP)'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                              <td><code>{{ invoice.taxIdPrefix|default('') }}{{ invoice.taxId }}</code></td>
+                            </tr>
+                          {% endif %}
+                          {% if invoice.email is defined and invoice.email %}
+                            <tr>
+                              <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">email</i> {{ 'Email'|trans({}, 'Admin.Global') }}</th>
+                              <td><a href="mailto:{{ invoice.email }}">{{ invoice.email }}</a></td>
+                            </tr>
+                          {% endif %}
+                          {% if invoice.address is defined and invoice.address %}
+                            <tr>
+                              <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">home</i> {{ 'Address'|trans({}, 'Admin.Global') }}</th>
+                              <td>
+                                {{ invoice.address.street|default('') }} {{ invoice.address.building|default('') }}{% if invoice.address.flat is defined and invoice.address.flat %}/{{ invoice.address.flat }}{% endif %}<br>
+                                {{ invoice.address.postCode|default('') }} {{ invoice.address.city|default('') }}<br>
+                                <strong>{{ invoice.address.countryCode|default('') }}</strong>
+                              </td>
+                            </tr>
+                          {% endif %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+
+            {# Payment Details #}
+            {% if shipmentDetails.payment_details %}
+              <div class="row mt-4">
+                <div class="col-12">
+                  <div class="card">
+                    <h5 class="card-header bg-success text-white">
+                      <i class="material-icons">payment</i>
+                      {{ 'Payment Information'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </h5>
+                    <div class="card-body">
+                      <table class="table table-sm table-borderless">
+                        <tbody>
+                          <tr>
+                            <th style="width: 20%;">{{ 'Payment Method'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                            <td><span class="badge badge-success">{{ shipmentDetails.payment_details.selectedPaymentType|default('N/A') }}</span></td>
+                          </tr>
+                          {% if shipmentDetails.payment_details.payments is defined and shipmentDetails.payment_details.payments %}
+                            {% for payment in shipmentDetails.payment_details.payments %}
+                              <tr>
+                                <th><i class="material-icons" style="font-size: 16px; vertical-align: middle;">event</i> {{ 'Payment Date'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                <td>
+                                  {% if payment.paymentDate is defined and payment.paymentDate %}
+                                    {{ payment.paymentDate|date('Y-m-d H:i:s') }}
+                                  {% else %}
+                                    N/A
+                                  {% endif %}
+                                </td>
+                              </tr>
+                            {% endfor %}
+                          {% endif %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          {% endif %}
+
+          {# Technical Details - Collapsed Section #}
+          <div class="row mt-5">
+            <div class="col-12">
+              <div class="card bg-light">
+                <div class="card-header" style="cursor: pointer;" data-toggle="collapse" data-target="#technicalDetails">
+                  <h6 class="mb-0">
+                    <i class="material-icons" style="font-size: 18px; vertical-align: middle;">info_outline</i>
+                    {{ 'Technical Details'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    <small class="text-muted">({{ 'click to expand'|trans({}, 'Admin.Actions') }})</small>
+                  </h6>
+                </div>
+                <div id="technicalDetails" class="collapse">
+                  <div class="card-body">
+                    <table class="table table-sm table-bordered">
+                      <tbody>
+                        <tr>
+                          <th style="width: 25%;">{{ 'Database ID'|trans({}, 'Admin.Global') }}</th>
+                          <td>{{ inpostOrder.id_inpost_order }}</td>
+                        </tr>
+                        {% if inpostOrder.id_order and inpostOrder.id_order > 0 %}
+                        <tr>
+                          <th>{{ 'PrestaShop Order'|trans({}, 'Admin.Orderscustomers.Feature') }}</th>
+                          <td>
+                            <a href="{{ path('admin_orders_view', {'orderId': inpostOrder.id_order}) }}" target="_blank">
+                              {{ inpostOrder.order_reference }} (ID: {{ inpostOrder.id_order }})
+                            </a>
+                          </td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                          <th>{{ 'InPost Order ID'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                          <td><code>{{ inpostOrder.inpost_order_id|default('N/A') }}</code></td>
+                        </tr>
+                        <tr>
+                          <th>{{ 'Date Created'|trans({}, 'Admin.Global') }}</th>
+                          <td>{{ inpostOrder.date_add }}</td>
+                        </tr>
+                        <tr>
+                          <th>{{ 'Date Updated'|trans({}, 'Admin.Global') }}</th>
+                          <td>{{ inpostOrder.date_upd }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

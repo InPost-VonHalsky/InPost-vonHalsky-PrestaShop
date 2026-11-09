@@ -1,0 +1,49 @@
+{
+    "name": "inpost-vonhalsky/module-prestashop",
+    "description": "InPost von Halsky marketplace integration module for PrestaShop 8",
+    "type": "prestashop-module",
+    "version": "1.0.0",
+    "license": [
+        "AFL-3.0"
+    ],
+    "homepage": "https://github.com/InPost-VonHalsky/InPost-vonHalsky-PrestaShop",
+    "authors": [
+        {
+            "name": "InPost",
+            "email": "apiportal@inpost.pl",
+            "homepage": "https://inpost.pl"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "inpostapi/inpost-vonhalsky-api-sdk-php": "^2.0",
+        "league/oauth2-client": "^2.7"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "Inpost\\VonHalsky\\": "src/"
+        },
+        "classmap": [
+            "inpostvonhalsky.php",
+            "controllers/front"
+        ]
+    },
+    "scripts": {
+        "stan": "phpstan analyse",
+        "post-install-cmd": [
+            "@php -r \"copy('install/vendor.htaccess', 'vendor/.htaccess');\""
+        ],
+        "post-update-cmd": [
+            "@php -r \"copy('install/vendor.htaccess', 'vendor/.htaccess');\""
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        },
+        "sort-packages": true
+    }
+}

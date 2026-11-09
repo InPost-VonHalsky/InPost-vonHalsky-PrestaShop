@@ -1,0 +1,513 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% macro sort_header(label, column, current_order_by, current_sort_order, filters) %}
+    {% set is_active = current_order_by == column %}
+    {% set next_sort = is_active and current_sort_order == 'DESC' ? 'ASC' : 'DESC' %}
+    <a href="{{ path('inpost_offers_list', filters|merge({orderBy: column, sortOrder: next_sort, page: 1})) }}" class="text-dark text-decoration-none">
+        {{ label|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+        {% if is_active %}
+            <i class="material-icons" style="font-size:14px;vertical-align:middle;">{{ current_sort_order == 'DESC' ? 'arrow_downward' : 'arrow_upward' }}</i>
+        {% endif %}
+    </a>
+{% endmacro %}
+
+{% block content %}
+<style>
+    .inpost-status-cell { display: inline-flex; align-items: center; white-space: nowrap; }
+    .inpost-cmd-error-tip { position: relative; display: inline-flex; align-items: center; margin-left: 6px; cursor: help; }
+    .inpost-cmd-error-tip > .material-icons { font-size: 18px; color: #dc3545; line-height: 1; }
+    .inpost-cmd-error-tip__content {
+        display: none;
+        position: absolute;
+        z-index: 1050;
+        top: 50%;
+        left: 100%;
+        transform: translateY(-50%);
+        margin-left: 8px;
+        width: max-content;
+        max-width: 320px;
+        white-space: normal;
+        text-align: left;
+        background: #2b2b2b;
+        color: #fff;
+        padding: 8px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.45;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+    }
+    .inpost-cmd-error-tip__content::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: 100%;
+        transform: translateY(-50%);
+        border: 5px solid transparent;
+        border-right-color: #2b2b2b;
+    }
+    .inpost-cmd-error-tip:hover .inpost-cmd-error-tip__content,
+    .inpost-cmd-error-tip:focus .inpost-cmd-error-tip__content { display: block; }
+</style>
+<div class="inpost-offers-list">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="page-title">
+                <i class="material-icons">shopping_cart</i>
+                {{ 'Offers Management'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </h1>
+        </div>
+    </div>
+
+    {# Filters #}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-header-title">
+                        <i class="material-icons">filter_list</i>
+                        {{ 'Filters'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{{ path('inpost_offers_list') }}" class="form-inline">
+                        <input type="hidden" name="_token" value="{{ app.request.query.get('_token') }}">
+                        <div class="form-group mr-2">
+                            <label for="status" class="mr-2">{{ 'Status:'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</label>
+                            <select name="status" id="status" class="form-control">
+                                <option value="">{{ 'All'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                <option value="DRAFT" {{ filters.status|default('') == 'DRAFT' ? 'selected' : '' }}>{{ 'Draft'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                <option value="PENDING" {{ filters.status|default('') == 'PENDING' ? 'selected' : '' }}>{{ 'Pending'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                <option value="REJECTED" {{ filters.status|default('') == 'REJECTED' ? 'selected' : '' }}>{{ 'Rejected'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                <option value="PUBLISHED" {{ filters.status|default('') == 'PUBLISHED' ? 'selected' : '' }}>{{ 'Published'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                <option value="CLOSED" {{ filters.status|default('') == 'CLOSED' ? 'selected' : '' }}>{{ 'Closed'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                <option value="SOLDOUT" {{ filters.status|default('') == 'SOLDOUT' ? 'selected' : '' }}>{{ 'Sold Out'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                <option value="ERROR_NOT_CREATED" {{ filters.status|default('') == 'ERROR_NOT_CREATED' ? 'selected' : '' }}>{{ 'Not Created (Error)'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                            </select>
+                        </div>
+                        {% if category_choices|length %}
+                            <div class="form-group mr-2">
+                                <label for="inpost_category" class="mr-2">{{ 'InPost category:'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</label>
+                                <select name="inpost_category" id="inpost_category" class="form-control">
+                                    <option value="">{{ 'All'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</option>
+                                    {% for category_id, category_path in category_choices %}
+                                        <option value="{{ category_id }}" {{ filters.inpost_category == category_id ? 'selected' : '' }}>{{ category_path }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
+                        <div class="form-group mr-2">
+                            <label for="search" class="mr-2">{{ 'Search:'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</label>
+                            <input type="text" name="search" id="search" class="form-control"
+                                   placeholder="{{ 'Product name or SKU'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}"
+                                   value="{{ filters.search ?? '' }}">
+                        </div>
+                        <div class="form-group mr-2">
+                            <label for="per_page" class="mr-2">{{ 'Per page:'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</label>
+                            <select name="per_page" id="per_page" class="form-control">
+                                {% for size in page_sizes %}
+                                    <option value="{{ size }}" {{ filters.per_page == size ? 'selected' : '' }}>{{ size }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="material-icons">search</i> {{ 'Filter'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                        </button>
+                        <a href="{{ path('inpost_offers_list') }}" class="btn btn-outline-secondary ml-2">
+                            <i class="material-icons">clear</i> {{ 'Clear'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Action Buttons #}
+    <div class="row mb-3">
+        <div class="col-12 d-flex align-items-center">
+            <a href="{{ path('inpost_offers_create') }}" class="btn btn-primary">
+                <i class="material-icons">add</i>
+                {{ 'Create New Offer'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </a>
+            <button type="button" id="bulk-attributes-btn" class="btn btn-outline-primary ml-2" disabled
+                    data-toggle="modal" data-target="#bulk-attributes-modal">
+                <i class="material-icons">tune</i>
+                {{ 'Edit attributes'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                <span id="bulk-attributes-count"></span>
+            </button>
+            <button type="button" id="bulk-price-btn" class="btn btn-outline-primary ml-2" disabled
+                    data-toggle="modal" data-target="#bulk-price-modal">
+                <i class="material-icons">sell</i>
+                {{ 'Set price'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                <span id="bulk-price-count"></span>
+            </button>
+            <button type="button" id="bulk-close-btn" class="btn btn-outline-warning ml-2" disabled>
+                <i class="material-icons">block</i>
+                {{ 'Close selected'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                <span id="bulk-close-count"></span>
+            </button>
+            <button type="button" id="bulk-reopen-btn" class="btn btn-outline-info ml-2" disabled>
+                <i class="material-icons">refresh</i>
+                {{ 'Reopen selected'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                <span id="bulk-reopen-count"></span>
+            </button>
+            <button type="button" id="bulk-delete-btn" class="btn btn-outline-danger ml-2" disabled>
+                <i class="material-icons">delete</i>
+                {{ 'Delete selected'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                <span id="bulk-delete-count"></span>
+            </button>
+            <small class="text-muted ml-2">
+                {{ 'Only published or sold-out offers can be closed, only closed offers can be reopened or deleted.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </small>
+        </div>
+    </div>
+
+    {# Hidden forms used by the bulk actions (kept outside the table to avoid nested forms) #}
+    <form id="offers-bulk-close-form" method="POST" action="{{ path('inpost_offers_bulk_close') }}" style="display:none;">
+        <input type="hidden" name="_token" value="{{ csrf_token('inpost_offers_bulk_close') }}">
+        <input type="hidden" name="return_query" value="{{ app.request.queryString }}">
+    </form>
+    <form id="offers-bulk-reopen-form" method="POST" action="{{ path('inpost_offers_bulk_reopen') }}" style="display:none;">
+        <input type="hidden" name="_token" value="{{ csrf_token('inpost_offers_bulk_reopen') }}">
+        <input type="hidden" name="return_query" value="{{ app.request.queryString }}">
+    </form>
+    <form id="offers-bulk-delete-form" method="POST" action="{{ path('inpost_offers_bulk_delete') }}" style="display:none;">
+        <input type="hidden" name="_token" value="{{ csrf_token('inpost_offers_bulk_delete') }}">
+        <input type="hidden" name="return_query" value="{{ app.request.queryString }}">
+    </form>
+
+    {# Offers Grid #}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if offers|length > 0 %}
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width:32px;">
+                                        <input type="checkbox" id="bulk-select-all" title="{{ 'Select all'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                                    </th>
+                                    <th>{{ _self.sort_header('ID', 'offerId', sorting.order_by, sorting.sort_order, filters) }}</th>
+                                    <th>{{ 'Product'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                    <th>{{ 'SKU'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                    <th>{{ 'Validation'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                    <th>{{ 'Status'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                    <th>{{ 'Price'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                    <th>{{ 'Stock'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                    <th>{{ 'InPost ID'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                    <th>{{ _self.sort_header('Created', 'createdAt', sorting.order_by, sorting.sort_order, filters) }}</th>
+                                    <th>{{ _self.sort_header('Synced', 'syncedAt', sorting.order_by, sorting.sort_order, filters) }}</th>
+                                    <th>{{ _self.sort_header('Updated', 'updatedAt', sorting.order_by, sorting.sort_order, filters) }}</th>
+                                    <th>{{ 'Actions'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for offer in offers %}
+                                    {% set on_inpost = offer.existsOnInpost %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="offer-bulk-cb" value="{{ offer.id }}" data-on-inpost="{{ on_inpost ? 1 : 0 }}" data-status="{{ offer.status }}" data-category="{{ offer.product.categoryMappingId|default('') }}">
+                                        </td>
+                                        <td>{{ offer.id }}</td>
+                                        <td>
+                                            <strong>{{ offer.product.name|default('N/A') }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ 'PS Product #%id%'|trans({'%id%': offer.prestashopOfferId}, 'Modules.Inpostvonhalsky.Admin') }}</small>
+                                            {% if offer.combinationOffer %}
+                                                {% if combination_labels[offer.prestashopProductAttributeId] is defined %}
+                                                    <small class="text-muted js-offer-combination">· {{ 'variant'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}: {{ combination_labels[offer.prestashopProductAttributeId] }}</small>
+                                                {% else %}
+                                                    <span class="badge badge-warning js-offer-combination-deleted" title="{{ 'The offer stock is set to 0. Close the offer if the variant will not come back.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                                                        {{ 'Variant deleted in PrestaShop'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                                                    </span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ offer.product.sku|default('N/A'|trans({}, 'Modules.Inpostvonhalsky.Admin')) }}</td>
+                                        <td>
+                                            {% set validation_badge = {
+                                                'VALID': 'badge-success',
+                                                'INVALID': 'badge-danger',
+                                                'WARNING': 'badge-warning'
+                                            } %}
+                                            {% if offer.inpostValidationStatus %}
+                                                <span class="badge {{ validation_badge[offer.inpostValidationStatus]|default('badge-secondary') }}">
+                                                    {{ {'VALID': 'Valid', 'INVALID': 'Invalid', 'WARNING': 'Warning'}[offer.inpostValidationStatus]|default(offer.inpostValidationStatus)|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">{{ 'Not validated'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% set status_badge = {
+                                                'DRAFT': 'badge-secondary',
+                                                'PENDING': 'badge-warning',
+                                                'REJECTED': 'badge-danger',
+                                                'PUBLISHED': 'badge-success',
+                                                'CLOSED': 'badge-dark',
+                                                'SOLDOUT': 'badge-info',
+                                                'ERROR_NOT_CREATED': 'badge-danger'
+                                            } %}
+                                            <span class="inpost-status-cell">
+                                                <span class="badge {{ status_badge[offer.status]|default('badge-secondary') }}">
+                                                    {{ {'DRAFT': 'Draft', 'PENDING': 'Pending', 'REJECTED': 'Rejected', 'PUBLISHED': 'Published', 'CLOSED': 'Closed', 'SOLDOUT': 'Sold out', 'ERROR_NOT_CREATED': 'Not created'}[offer.status]|default(offer.status)|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                                                </span>
+                                                {% if offer.status == 'ERROR_NOT_CREATED' and offer.commandError %}
+                                                    <span class="inpost-cmd-error-tip" tabindex="0"
+                                                          aria-label="{{ offer.commandError }}">
+                                                        <i class="material-icons">help_outline</i>
+                                                        <span class="inpost-cmd-error-tip__content">{{ offer.commandError }}</span>
+                                                    </span>
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td class="text-nowrap">
+                                            {{ offer.price.price|default(0)|number_format(2, '.', '') }} {{ offer.price.currency|default('PLN') }}
+                                            {# GOKINT-1098: manual price, or the shop price when the InPost one differs #}
+                                            {% if offer.price and offer.price.priceMode == 'manual' %}
+                                                <br><span class="badge badge-info">{{ 'manual'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</span>
+                                            {% elseif offer.price and offer.price.shopPrice is not null and (offer.price.shopPrice - offer.price.price)|abs >= 0.005 %}
+                                                <br><small class="text-muted">{{ 'shop: %price%'|trans({'%price%': offer.price.shopPrice|number_format(2, '.', '')}, 'Modules.Inpostvonhalsky.Admin') }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ offer.stock.quantity|default(0) }} {{ offer.stock.unit|default('UNIT') }}</td>
+                                        <td>
+                                            {% if offer.inpostOfferId %}
+                                                <code>{{ offer.inpostOfferId }}</code>
+                                            {% else %}
+                                                <span class="text-muted">{{ 'Not synced'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ offer.createdAt ? offer.createdAt|date('Y-m-d H:i') : '-' }}</td>
+                                        <td>{{ offer.syncedAt ? offer.syncedAt|date('Y-m-d H:i') : '-' }}</td>
+                                        <td>{{ offer.updatedAt ? offer.updatedAt|date('Y-m-d H:i') : '-' }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ path('inpost_offers_edit', {id: offer.id}) }}"
+                                                   class="btn btn-outline-primary" title="{{ 'Edit'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                                                    <i class="material-icons">edit</i>
+                                                </a>
+                                                {% if not offer.isDraft %}
+                                                <form action="{{ path('inpost_offers_send', {id: offer.id}) }}"
+                                                      method="POST"
+                                                      style="display: inline;">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('inpost_offer_send') }}">
+                                                    <button type="submit" class="btn btn-outline-success" title="{{ 'Send to InPost'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                                                        <i class="material-icons">send</i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                {% include '@Modules/inpostvonhalsky/views/templates/admin/offer/_delete_form.html.twig' with {offer: offer, button_class: 'btn btn-outline-danger', with_label: false} %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        {# Pagination #}
+                        <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                            <span class="text-muted">
+                                {% set from_item = ((pagination.current_page - 1) * pagination.items_per_page) + 1 %}
+                                {% set to_item = min(pagination.current_page * pagination.items_per_page, pagination.total_items) %}
+                                {{ 'Showing %from% - %to% of %total% offers'|trans({
+                                    '%from%': from_item,
+                                    '%to%': to_item,
+                                    '%total%': pagination.total_items
+                                }, 'Modules.Inpostvonhalsky.Admin') }}
+                            </span>
+                        </div>
+                        {% if pagination.total_pages > 1 %}
+                            {% set start_page = max(1, pagination.current_page - 2) %}
+                            {% set end_page = min(pagination.total_pages, pagination.current_page + 2) %}
+                            <nav aria-label="{{ 'Offer pagination'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item {{ pagination.current_page == 1 ? 'disabled' : '' }}">
+                                        <a class="page-link" href="{{ path('inpost_offers_list', filters|merge({page: pagination.current_page - 1})) }}">
+                                            {{ 'Previous'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                                        </a>
+                                    </li>
+                                    {% if start_page > 1 %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ path('inpost_offers_list', filters|merge({page: 1})) }}">1</a>
+                                        </li>
+                                        {% if start_page > 2 %}
+                                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% for page in start_page..end_page %}
+                                        <li class="page-item {{ page == pagination.current_page ? 'active' : '' }}">
+                                            <a class="page-link" href="{{ path('inpost_offers_list', filters|merge({page: page})) }}">
+                                                {{ page }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                    {% if end_page < pagination.total_pages %}
+                                        {% if end_page < pagination.total_pages - 1 %}
+                                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        {% endif %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ path('inpost_offers_list', filters|merge({page: pagination.total_pages})) }}">{{ pagination.total_pages }}</a>
+                                        </li>
+                                    {% endif %}
+                                    <li class="page-item {{ pagination.current_page == pagination.total_pages ? 'disabled' : '' }}">
+                                        <a class="page-link" href="{{ path('inpost_offers_list', filters|merge({page: pagination.current_page + 1})) }}">
+                                            {{ 'Next'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="material-icons">info</i>
+                            {{ 'No offers found.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }} <a href="{{ path('inpost_offers_create') }}">{{ 'Create your first offer'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var selectAll = document.getElementById('bulk-select-all');
+    var deleteBtn = document.getElementById('bulk-delete-btn');
+    var deleteCountEl = document.getElementById('bulk-delete-count');
+    var deleteForm = document.getElementById('offers-bulk-delete-form');
+    var closeBtn = document.getElementById('bulk-close-btn');
+    var closeCountEl = document.getElementById('bulk-close-count');
+    var closeForm = document.getElementById('offers-bulk-close-form');
+    var reopenBtn = document.getElementById('bulk-reopen-btn');
+    var reopenCountEl = document.getElementById('bulk-reopen-count');
+    var reopenForm = document.getElementById('offers-bulk-reopen-form');
+    if (!deleteBtn || !deleteForm || !closeBtn || !closeForm || !reopenBtn || !reopenForm) {
+        return;
+    }
+
+    function checkboxes() {
+        return Array.prototype.slice.call(document.querySelectorAll('.offer-bulk-cb'));
+    }
+
+    var DELETABLE = ['CLOSED'];
+    var CLOSABLE = ['PUBLISHED', 'SOLDOUT'];
+    var REOPENABLE = ['CLOSED'];
+
+    function checkedCheckboxes(statuses) {
+        return checkboxes().filter(function (cb) {
+            return cb.checked && statuses.indexOf(cb.getAttribute('data-status')) !== -1;
+        });
+    }
+
+    function selectedIds(statuses) {
+        return checkedCheckboxes(statuses).map(function (cb) { return cb.value; });
+    }
+
+    function setButton(btn, countEl, n) {
+        btn.disabled = n === 0;
+        countEl.textContent = n > 0 ? ' (' + n + ')' : '';
+    }
+
+    function submitIds(form, ids) {
+        ids.forEach(function (id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'offer_ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+        form.submit();
+    }
+
+    function refresh() {
+        var checkedCount = checkboxes().filter(function (cb) { return cb.checked; }).length;
+        var attributesBtn = document.getElementById('bulk-attributes-btn');
+        if (attributesBtn) {
+            setButton(attributesBtn, document.getElementById('bulk-attributes-count'), checkedCount);
+        }
+        var priceBtn = document.getElementById('bulk-price-btn');
+        if (priceBtn) {
+            setButton(priceBtn, document.getElementById('bulk-price-count'), checkedCount);
+        }
+        setButton(deleteBtn, deleteCountEl, selectedIds(DELETABLE).length);
+        setButton(closeBtn, closeCountEl, selectedIds(CLOSABLE).length);
+        setButton(reopenBtn, reopenCountEl, selectedIds(REOPENABLE).length);
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            checkboxes().forEach(function (cb) { cb.checked = selectAll.checked; });
+            refresh();
+        });
+    }
+
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains('offer-bulk-cb')) {
+            refresh();
+        }
+    });
+
+    deleteBtn.addEventListener('click', function () {
+        var ids = selectedIds(DELETABLE);
+        if (ids.length === 0) {
+            return;
+        }
+        var msg = '{{ 'Delete %count% closed offer(s)? This cannot be undone.'|trans({}, 'Modules.Inpostvonhalsky.Admin')|e('js') }}'.replace('%count%', ids.length);
+        var onInpost = checkedCheckboxes(DELETABLE).filter(function (cb) { return cb.getAttribute('data-on-inpost') === '1'; }).length;
+        if (onInpost > 0) {
+            msg += '\n\n' + '{{ '%count% of them exist in InPost: they are deleted from the module only and are no longer updated.'|trans({}, 'Modules.Inpostvonhalsky.Admin')|e('js') }}'.replace('%count%', onInpost);
+        }
+        if (!window.confirm(msg)) {
+            return;
+        }
+        if (onInpost > 0) {
+            var confirmInput = document.createElement('input');
+            confirmInput.type = 'hidden';
+            confirmInput.name = 'confirm_inpost';
+            confirmInput.value = '1';
+            deleteForm.appendChild(confirmInput);
+        }
+        submitIds(deleteForm, ids);
+    });
+
+    closeBtn.addEventListener('click', function () {
+        var ids = selectedIds(CLOSABLE);
+        if (ids.length === 0) {
+            return;
+        }
+        var msg = '{{ 'Close %count% published / sold-out offer(s)?'|trans({}, 'Modules.Inpostvonhalsky.Admin')|e('js') }}'.replace('%count%', ids.length);
+        if (!window.confirm(msg)) {
+            return;
+        }
+        submitIds(closeForm, ids);
+    });
+
+    reopenBtn.addEventListener('click', function () {
+        var ids = selectedIds(REOPENABLE);
+        if (ids.length === 0) {
+            return;
+        }
+        var msg = '{{ 'Reopen %count% closed offer(s)?'|trans({}, 'Modules.Inpostvonhalsky.Admin')|e('js') }}'.replace('%count%', ids.length);
+        if (!window.confirm(msg)) {
+            return;
+        }
+        submitIds(reopenForm, ids);
+    });
+
+    refresh();
+})();
+</script>
+
+{# GOKINT-1102: bulk attribute edit #}
+{% include '@Modules/inpostvonhalsky/views/templates/admin/offer/_bulk_attributes_modal.html.twig' %}
+{% include '@Modules/inpostvonhalsky/views/templates/admin/offer/_bulk_attributes_i18n.html.twig' %}
+<script src="{{ module_js_path }}offer-bulk-attributes.js"></script>
+
+{# GOKINT-1098: bulk price edit #}
+{% include '@Modules/inpostvonhalsky/views/templates/admin/offer/_bulk_price_modal.html.twig' %}
+<script src="{{ module_js_path }}offer-bulk-price.js"></script>
+{% endblock %}

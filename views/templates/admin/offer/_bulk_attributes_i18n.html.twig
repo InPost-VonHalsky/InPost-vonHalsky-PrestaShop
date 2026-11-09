@@ -1,0 +1,57 @@
+{#
+/**
+ * Translations for views/js/offer-bulk-attributes.js
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+<script>
+  window.InpostI18n = Object.assign(window.InpostI18n || {}, {{ {
+    'Loading...': 'Loading...'|trans({}, d),
+    'Request failed': 'Request failed'|trans({}, d),
+    '-- select attributes --': '-- select attributes --'|trans({}, d),
+    'The selected offers have no InPost category attributes.': 'The selected offers have no InPost category attributes.'|trans({}, d),
+    '%offers% offer(s), %categories% categor(y/ies)': '%offers% offer(s), %categories% categor(y/ies)'|trans({}, d),
+    'required': 'required'|trans({}, d),
+    'list': 'list'|trans({}, d),
+    'whole number': 'whole number'|trans({}, d),
+    'number': 'number'|trans({}, d),
+    'text': 'text'|trans({}, d),
+    'link': 'link'|trans({}, d),
+    'date': 'date'|trans({}, d),
+    'Set value': 'Set value'|trans({}, d),
+    'Clear value': 'Clear value'|trans({}, d),
+    'Restore from PrestaShop': 'Restore from PrestaShop'|trans({}, d),
+    'Map from PrestaShop': 'Map from PrestaShop'|trans({}, d),
+    'Features': 'Features'|trans({}, d),
+    'Attributes': 'Attributes'|trans({}, d),
+    'Product fields': 'Product fields'|trans({}, d),
+    'Remove': 'Remove'|trans({}, d),
+    'The value is removed from the offers.': 'The value is removed from the offers.'|trans({}, d),
+    'The value comes from the PrestaShop mapping again.': 'The value comes from the PrestaShop mapping again.'|trans({}, d),
+    '-- select a source --': '-- select a source --'|trans({}, d),
+    'Select one or more...': 'Select one or more...'|trans({}, d),
+    '-- select --': '-- select --'|trans({}, d),
+    'Category mapping': 'Category mapping'|trans({}, d),
+    'Current source': 'Current source'|trans({}, d),
+    'New source': 'New source'|trans({}, d),
+    'Offers': 'Offers'|trans({}, d),
+    'Offer': 'Offer'|trans({}, d),
+    'Attribute': 'Attribute'|trans({}, d),
+    'InPost category': 'InPost category'|trans({}, d),
+    'Current value': 'Current value'|trans({}, d),
+    'New value': 'New value'|trans({}, d),
+    'Result': 'Result'|trans({}, d),
+    'Change': 'Change'|trans({}, d),
+    'No change': 'No change'|trans({}, d),
+    'Skipped': 'Skipped'|trans({}, d),
+    'empty': 'empty'|trans({}, d),
+    'from PrestaShop': 'from PrestaShop'|trans({}, d),
+    'Changed: %changed%, no change: %same%, skipped: %skipped%': 'Changed: %changed%, no change: %same%, skipped: %skipped%'|trans({}, d),
+    'Apply %count% change(s) to the offers? Offers already in InPost are sent there within a few minutes.': 'Apply %count% change(s) to the offers? Offers already in InPost are sent there within a few minutes.'|trans({}, d),
+    'The PrestaShop source is also saved in %count% category mapping(s).': 'The PrestaShop source is also saved in %count% category mapping(s).'|trans({}, d)
+  }|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }});
+</script>

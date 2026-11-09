@@ -1,0 +1,12 @@
+parameters:
+    level: 6
+    paths:
+        - src
+    excludePaths:
+        - src/Entity/*
+    ignoreErrors:
+        - '#Call to an undefined method Doctrine\\ORM\\EntityRepository#'
+        - '#Access to an undefined property PrestaShop\\PrestaShop#'
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    reportUnmatchedIgnoredErrors: false

@@ -1,0 +1,39 @@
+{#
+ # Delete button of one offer. Only CLOSED offers can be deleted - any other
+ # status renders a disabled button instead. An offer that exists in InPost
+ # (the API has no deletion) stays there untouched after deletion: it is already
+ # closed, so the request must confirm it (confirm_inpost=1).
+ #
+ # @param offer        Offer entity
+ # @param button_class CSS classes of the button
+ # @param with_label   Show the text next to the icon
+ #}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+{% if offer.status != 'CLOSED' %}
+    <button type="button" class="{{ button_class }}" disabled
+            title="{{ 'Only closed offers can be deleted. Close the offer first.'|trans({}, d) }}">
+        <i class="material-icons">delete</i>
+        {% if with_label %}{{ 'Delete'|trans({}, d) }}{% endif %}
+    </button>
+{% else %}
+    {% if offer.existsOnInpost %}
+        {% set confirm_message = 'Offer #%id% exists in InPost, already closed there. Deleting removes it only from this module - it stays closed in InPost and is no longer updated. Delete it from the module?'|trans({'%id%': offer.id}, d) %}
+    {% else %}
+        {% set confirm_message = 'Are you sure you want to delete this offer?'|trans({}, d) %}
+    {% endif %}
+    <form action="{{ path('inpost_offers_delete', {id: offer.id}) }}"
+          method="POST"
+          style="display: inline;"
+          class="js-offer-delete-form"
+          onsubmit="return confirm('{{ confirm_message|e('js') }}')">
+        <input type="hidden" name="_token" value="{{ csrf_token('inpost_offers_delete') }}">
+        {% if offer.existsOnInpost %}
+            <input type="hidden" name="confirm_inpost" value="1">
+        {% endif %}
+        <button type="submit" class="{{ button_class }}"
+                title="{{ offer.existsOnInpost ? 'Delete from the module only (stays closed in InPost)'|trans({}, d) : 'Delete'|trans({}, d) }}">
+            <i class="material-icons">delete</i>
+            {% if with_label %}{{ 'Delete'|trans({}, d) }}{% endif %}
+        </button>
+    </form>
+{% endif %}

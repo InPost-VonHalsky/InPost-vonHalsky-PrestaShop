@@ -1,0 +1,248 @@
+{#
+/**
+ * Background jobs panel - live progress of the scheduled jobs.
+ * Data: inpost_jobs_data (polled), stop: inpost_jobs_stop.
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    .ivh-jobs { max-width: 1100px; }
+    .ivh-jobs .card { border: 1px solid #e6e9ec; box-shadow: none; }
+    .ivh-jobs-hint { color: #6c868e; font-size: .85rem; margin-bottom: 1rem; display: flex; align-items: center; }
+    .ivh-jobs-hint .ivh-live { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; margin-right: .5rem; }
+    .ivh-jobs-hint .ivh-live.is-off { background: #e53935; }
+    .ivh-section-title { font-size: 1rem; font-weight: 600; color: #25282b; margin: 1.25rem 0 .75rem; }
+
+    .ivh-job { padding: 1.1rem 1.25rem; margin-bottom: 1rem; border-left: 5px solid #25b9d7; }
+    .ivh-job.is-stale { border-left-color: #e53935; }
+    .ivh-job-head { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+    .ivh-job-title { font-size: 1.1rem; font-weight: 600; color: #25282b; }
+    .ivh-job-meta { color: #8a9aa1; font-size: .8rem; }
+    .ivh-job-head .btn { margin-left: auto; }
+    .ivh-badge { display: inline-block; padding: .15rem .55rem; border-radius: 10px; font-size: .75rem; font-weight: 600; color: #fff; background: #8a9aa1; }
+    .ivh-badge-running { background: #25b9d7; }
+    .ivh-badge-stale, .ivh-badge-failed { background: #e53935; }
+    .ivh-badge-finished { background: #4caf50; }
+    .ivh-badge-stopped { background: #f0a500; }
+
+    .ivh-bar { position: relative; height: 22px; border-radius: 4px; background: #eef0f2; overflow: hidden; }
+    .ivh-bar-fill { height: 100%; background: #25b9d7; transition: width .6s ease; }
+    .ivh-bar-fill.is-indeterminate { width: 35% !important; position: absolute; animation: ivh-slide 1.4s ease-in-out infinite; }
+    .is-stale .ivh-bar-fill { background: #e57373; animation: none; }
+    @keyframes ivh-slide { 0% { left: -35%; } 100% { left: 100%; } }
+    .ivh-bar-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; color: #25282b; }
+
+    .ivh-job-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem 1rem; margin-top: .85rem; }
+    .ivh-stat small { display: block; color: #8a9aa1; font-size: .75rem; }
+    .ivh-stat strong { font-size: 1rem; color: #25282b; }
+    .ivh-stat strong.is-error { color: #e53935; }
+    .ivh-job-step { margin-top: .75rem; font-size: .85rem; color: #6c868e; }
+    .ivh-job-error { margin-top: .5rem; font-size: .85rem; color: #b71c1c; background: #fdecea; border-radius: 4px; padding: .5rem .75rem; word-break: break-word; }
+
+    .ivh-jobs table { margin: 0; font-size: .85rem; }
+    .ivh-jobs td, .ivh-jobs th { padding: .55rem 1rem; vertical-align: top; }
+    .ivh-jobs th { color: #6c868e; font-weight: 600; border-top: 0; }
+    .ivh-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: .45rem; }
+    .ivh-dot-ok { background: #4caf50; }
+    .ivh-dot-error { background: #e53935; }
+    .ivh-dot-off { background: #c5cdd1; }
+    .ivh-muted { color: #8a9aa1; }
+    .ivh-result-text { display: block; color: #6c868e; font-size: .8rem; max-width: 520px; word-break: break-word; }
+  </style>
+{% endblock %}
+
+{% block content %}
+  {% set domain = 'Modules.Inpostvonhalsky.Admin' %}
+  {% set i18n = {
+    'running': 'Running'|trans({}, domain),
+    'stale': 'Not responding'|trans({}, domain),
+    'staleHint': 'No sign of life from this job for a few minutes - the process was probably killed or the server restarted. The next cron run starts it again.'|trans({}, domain),
+    'finished': 'Finished'|trans({}, domain),
+    'failed': 'Failed'|trans({}, domain),
+    'stopped': 'Stopped'|trans({}, domain),
+    'cron': 'scheduled task'|trans({}, domain),
+    'manual': 'started manually'|trans({}, domain),
+    'stop': 'Stop'|trans({}, domain),
+    'stopping': 'Stopping after the current order…'|trans({}, domain),
+    'stopConfirm': 'Stop the job after the current item? Unprocessed orders will be picked up by the next run.'|trans({}, domain),
+    'processed': 'Processed'|trans({}, domain),
+    'elapsed': 'Running for'|trans({}, domain),
+    'eta': 'Remaining (approx.)'|trans({}, domain),
+    'created': 'Shop orders created'|trans({}, domain),
+    'errors': 'Errors'|trans({}, domain),
+    'lastError': 'Last error'|trans({}, domain),
+    'noRunning': 'No job is running right now.'|trans({}, domain),
+    'runningTitle': 'Running now'|trans({}, domain),
+    'allTitle': 'All jobs'|trans({}, domain),
+    'job': 'Job'|trans({}, domain),
+    'lastRun': 'Last run'|trans({}, domain),
+    'nextRun': 'Next run'|trans({}, domain),
+    'disabled': 'disabled'|trans({}, domain),
+    'never': 'never'|trans({}, domain),
+    'ago': '%time% ago'|trans({}, domain),
+    'live': 'Refreshed automatically'|trans({}, domain),
+    'offline': 'Cannot reach the shop - retrying…'|trans({}, domain),
+    'took': 'took %time%'|trans({}, domain),
+    'due': 'on the next cron tick'|trans({}, domain)
+  } %}
+
+  <div class="ivh-jobs" id="ivh-jobs"
+       data-url="{{ path('inpost_jobs_data') }}"
+       data-stop-url="{{ path('inpost_jobs_stop') }}"
+       data-i18n="{{ i18n|json_encode }}">
+    <div class="ivh-jobs-hint"><span class="ivh-live"></span><span class="ivh-live-text">{{ i18n.live }}</span></div>
+    <div class="ivh-jobs-running"></div>
+    <h3 class="ivh-section-title">{{ i18n.allTitle }}</h3>
+    <div class="card">
+      <table class="table">
+        <thead><tr><th>{{ i18n.job }}</th><th>{{ i18n.lastRun }}</th><th>{{ i18n.nextRun }}</th></tr></thead>
+        <tbody class="ivh-jobs-all"></tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script>
+    (function () {
+      var root = document.getElementById('ivh-jobs');
+      if (!root) { return; }
+      var t = JSON.parse(root.dataset.i18n);
+      var runningBox = root.querySelector('.ivh-jobs-running');
+      var allBody = root.querySelector('.ivh-jobs-all');
+      var liveDot = root.querySelector('.ivh-live');
+      var liveText = root.querySelector('.ivh-live-text');
+      var timer = null;
+      var stopping = {};
+
+      function esc(value) {
+        return String(value === null || value === undefined ? '' : value)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function duration(seconds) {
+        seconds = Math.max(0, Math.round(seconds));
+        var h = Math.floor(seconds / 3600), m = Math.floor(seconds % 3600 / 60), s = seconds % 60;
+        if (h) { return h + ' h ' + m + ' min'; }
+        if (m) { return m + ' min ' + s + ' s'; }
+        return s + ' s';
+      }
+      function clock(ts) {
+        var d = new Date(ts * 1000);
+        return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+      }
+      function ago(ts, now) { return t.ago.replace('%time%', duration(now - ts)); }
+      function stat(label, value, isError) {
+        return '<div class="ivh-stat"><small>' + esc(label) + '</small><strong' + (isError ? ' class="is-error"' : '') + '>' + esc(value) + '</strong></div>';
+      }
+
+      function runningCard(job, now) {
+        var stale = job.state === 'stale';
+        var badge = stale ? '<span class="ivh-badge ivh-badge-stale">' + esc(t.stale) + '</span>'
+                          : '<span class="ivh-badge ivh-badge-running">' + esc(t.running) + '</span>';
+        var meta = [t[job.trigger] || job.trigger, job.host, job.pid ? 'PID ' + job.pid : null, job.started_at ? clock(job.started_at) : null]
+          .filter(Boolean).join(' · ');
+        var stopBtn = '';
+        if (job.stoppable && !stale) {
+          var isStopping = job.stop_requested || stopping[job.name];
+          stopBtn = '<button type="button" class="btn btn-sm btn-outline-danger" data-stop="' + esc(job.name) + '"' + (isStopping ? ' disabled' : '') + '>'
+            + esc(isStopping ? t.stopping : t.stop) + '</button>';
+        }
+
+        var determinate = job.percent !== null;
+        var bar = '<div class="ivh-bar"><div class="ivh-bar-fill' + (determinate ? '' : ' is-indeterminate') + '" style="width:' + (determinate ? job.percent : 35) + '%"></div>'
+          + '<div class="ivh-bar-label">' + (determinate ? esc(job.done + ' / ' + job.total + ' (' + job.percent + '%)') : '') + '</div></div>';
+
+        var stats = stat(t.elapsed, job.elapsed !== null ? duration(job.elapsed) : '-');
+        if (job.reports_progress) {
+          stats += stat(t.processed, job.done + (job.total !== null ? ' / ' + job.total : ''));
+          if (job.eta !== null) { stats += stat(t.eta, duration(job.eta)); }
+          if (job.name === 'order_sync' || job.name === 'order_event_sync') { stats += stat(t.created, job.created); }
+          stats += stat(t.errors, job.errors, job.errors > 0);
+        }
+
+        return '<div class="card ivh-job' + (stale ? ' is-stale' : '') + '">'
+          + '<div class="ivh-job-head">' + badge + '<span class="ivh-job-title">' + esc(job.label) + '</span><span class="ivh-job-meta">' + esc(meta) + '</span>' + stopBtn + '</div>'
+          + bar
+          + '<div class="ivh-job-stats">' + stats + '</div>'
+          + (stale ? '<div class="ivh-job-error">' + esc(t.staleHint) + '</div>' : '')
+          + (job.step && !stale ? '<div class="ivh-job-step">' + esc(job.step) + '</div>' : '')
+          + (job.last_error ? '<div class="ivh-job-error"><strong>' + esc(t.lastError) + ':</strong> ' + esc(job.last_error) + '</div>' : '')
+          + '</div>';
+      }
+
+      function row(job, now) {
+        var last = '<span class="ivh-muted">' + esc(t.never) + '</span>';
+        var result = job.last_result;
+        if (job.running) {
+          last = '<span class="ivh-badge ivh-badge-' + (job.state === 'stale' ? 'stale' : 'running') + '">' + esc(job.state === 'stale' ? t.stale : t.running) + '</span>';
+        } else if (result && result.finished_at) {
+          var state = job.state === 'stopped' ? 'stopped' : (result.success ? 'finished' : 'failed');
+          last = '<span class="ivh-badge ivh-badge-' + state + '">' + esc(t[state]) + '</span> '
+            + esc(clock(result.finished_at)) + ' <span class="ivh-muted">(' + esc(ago(result.finished_at, now))
+            + (result.duration !== null ? ', ' + esc(t.took.replace('%time%', duration(result.duration))) : '') + ')</span>'
+            + (result.text ? '<span class="ivh-result-text">' + esc(result.text) + '</span>' : '');
+        } else if (job.last_run) {
+          last = esc(clock(job.last_run)) + ' <span class="ivh-muted">(' + esc(ago(job.last_run, now)) + ')</span>';
+        }
+        var next = !job.enabled ? '<span class="ivh-muted">' + esc(t.disabled) + '</span>'
+          : (job.next_run ? esc(job.next_run <= now ? t.due : clock(job.next_run)) : '-');
+
+        return '<tr><td><span class="ivh-dot ivh-dot-' + (!job.enabled ? 'off' : (result && !result.success ? 'error' : 'ok')) + '"></span>' + esc(job.label) + '</td>'
+          + '<td>' + last + '</td><td>' + next + '</td></tr>';
+      }
+
+      function render(data) {
+        var running = data.jobs.filter(function (job) { return job.running || job.state === 'stale'; });
+        data.jobs.forEach(function (job) { if (!job.running) { delete stopping[job.name]; } });
+        runningBox.innerHTML = '<h3 class="ivh-section-title">' + esc(t.runningTitle) + '</h3>'
+          + (running.length ? running.map(function (job) { return runningCard(job, data.now); }).join('')
+                            : '<div class="card ivh-job"><span class="ivh-muted">' + esc(t.noRunning) + '</span></div>');
+        allBody.innerHTML = data.jobs.map(function (job) { return row(job, data.now); }).join('');
+        return running.some(function (job) { return job.running; });
+      }
+
+      function poll() {
+        clearTimeout(timer);
+        fetch(root.dataset.url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+          .then(function (response) { if (!response.ok) { throw new Error(response.status); } return response.json(); })
+          .then(function (data) {
+            liveDot.classList.remove('is-off');
+            liveText.textContent = t.live;
+            schedule(render(data) ? 2000 : 10000);
+          })
+          .catch(function () {
+            liveDot.classList.add('is-off');
+            liveText.textContent = t.offline;
+            schedule(10000);
+          });
+      }
+      function schedule(ms) {
+        clearTimeout(timer);
+        timer = setTimeout(function () { if (document.hidden) { schedule(ms); } else { poll(); } }, ms);
+      }
+
+      runningBox.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-stop]');
+        if (!button || !window.confirm(t.stopConfirm)) { return; }
+        var job = button.getAttribute('data-stop');
+        stopping[job] = true;
+        button.disabled = true;
+        button.textContent = t.stopping;
+        var body = new FormData();
+        body.append('job', job);
+        fetch(root.dataset.stopUrl, { method: 'POST', credentials: 'same-origin', body: body }).then(poll, poll);
+      });
+
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) { poll(); } });
+      poll();
+    })();
+  </script>
+{% endblock %}

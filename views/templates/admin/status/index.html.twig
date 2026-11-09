@@ -1,0 +1,234 @@
+{#
+/**
+ * InPost integration status panel
+ *
+ * Layout follows "show exceptions, not the norm":
+ *   1. one answer - does the integration work?
+ *   2. four areas, one figure each
+ *   3. only what needs fixing, each with a way to fix it
+ *   4. everything else collapsed under "Technical details"
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% macro dot(state) %}
+  <span class="ivh-dot ivh-dot-{{ state == 'info' ? 'ok' : state }}"></span>
+{% endmacro %}
+
+{% macro problem_row(problem, fixLinks, domain) %}
+  {% import _self as m %}
+  <div class="ivh-problem">
+    {{ m.dot(problem.status) }}
+    <div class="ivh-problem-body">
+      <div class="ivh-problem-title">
+        {{ problem.label }}<small>{{ problem.value }}</small>
+      </div>
+      {% if problem.hint %}
+        <div class="ivh-problem-hint">{{ problem.hint }}</div>
+      {% endif %}
+    </div>
+    {% if problem.link is defined %}
+      <a href="{{ path(problem.link.route, problem.link.params) }}" class="btn btn-sm btn-outline-primary">{{ 'Open'|trans({}, domain) }}</a>
+    {% elseif problem.fix is defined and problem.fix == 'configuration' %}
+      <a href="{{ fixLinks['connection'] }}" class="btn btn-sm btn-outline-primary">{{ 'Open'|trans({}, domain) }}</a>
+    {% elseif fixLinks[problem.section_key] is defined %}
+      <a href="{{ fixLinks[problem.section_key] }}" class="btn btn-sm btn-outline-primary">{{ 'Open'|trans({}, domain) }}</a>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    .ivh { max-width: 1100px; }
+    .ivh .card { border: 1px solid #e6e9ec; box-shadow: none; }
+
+    /* 1. Overall answer */
+    .ivh-hero { display: flex; flex-direction: row; align-items: center; padding: 1.5rem; margin-bottom: 1.5rem; border-left: 5px solid; }
+    .ivh-hero-ok { border-left-color: #4caf50; }
+    .ivh-hero-warning { border-left-color: #f0a500; }
+    .ivh-hero-error { border-left-color: #e53935; }
+    .ivh-hero-icon { font-size: 44px; margin-right: 1.25rem; }
+    .ivh-hero-ok .ivh-hero-icon { color: #4caf50; }
+    .ivh-hero-warning .ivh-hero-icon { color: #f0a500; }
+    .ivh-hero-error .ivh-hero-icon { color: #e53935; }
+    .ivh-hero h2 { margin: 0 0 .25rem; font-size: 1.35rem; font-weight: 600; color: #25282b; }
+    .ivh-hero p { margin: 0; color: #6c868e; }
+
+    /* 2. Areas */
+    .ivh-areas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    @media (max-width: 991px) { .ivh-areas { grid-template-columns: repeat(2, 1fr); } }
+    .ivh-area { padding: 1.1rem 1.25rem; margin: 0; }
+    .ivh-area-head { display: flex; align-items: center; color: #6c868e; font-size: .85rem; margin-bottom: .75rem; }
+    .ivh-area-head .material-icons { font-size: 18px; margin-right: .4rem; }
+    .ivh-area-value { font-size: 1.6rem; font-weight: 600; color: #25282b; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ivh-area-caption { font-size: .8rem; color: #8a9aa1; margin-bottom: .75rem; }
+    .ivh-area-state { font-size: .8rem; display: flex; align-items: center; }
+    .ivh-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: .45rem; flex-shrink: 0; }
+    .ivh-dot-ok { background: #4caf50; }
+    .ivh-dot-warning { background: #f0a500; }
+    .ivh-dot-error { background: #e53935; }
+
+    /* 3. To fix */
+    .ivh-section-title { font-size: 1rem; font-weight: 600; color: #25282b; margin: 0 0 .75rem; }
+    .ivh-problem { display: flex; align-items: center; padding: .9rem 1.25rem; border-bottom: 1px solid #eef0f2; }
+    .ivh-problem:last-child { border-bottom: 0; }
+    .ivh-problem-body { flex-grow: 1; min-width: 0; }
+    .ivh-problem-title { font-weight: 600; color: #25282b; }
+    .ivh-problem-title small { font-weight: 400; color: #8a9aa1; margin-left: .35rem; }
+    .ivh-problem-hint { font-size: .85rem; color: #6c868e; margin-top: 2px; }
+    .ivh-problem .btn { margin-left: 1rem; white-space: nowrap; }
+    .ivh-more summary { padding: .75rem 1.25rem; cursor: pointer; color: #25b9d7; font-size: .875rem; }
+
+    /* 4. Technical details */
+    .ivh-details > summary { cursor: pointer; color: #6c868e; font-size: .9rem; margin: 1.5rem 0 1rem; list-style: none; display: inline-flex; align-items: center; }
+    .ivh-details > summary::-webkit-details-marker { display: none; }
+    .ivh-details[open] > summary .material-icons { transform: rotate(90deg); }
+    .ivh-details > summary .material-icons { transition: transform .15s; font-size: 20px; }
+    .ivh-tech { columns: 2 420px; column-gap: 1rem; }
+    .ivh-tech .card { break-inside: avoid; margin-bottom: 1rem; }
+    .ivh-tech h4 { font-size: .9rem; font-weight: 600; margin: 0; padding: .75rem 1rem; border-bottom: 1px solid #eef0f2; display: flex; align-items: center; }
+    .ivh-tech table { margin: 0; font-size: .82rem; }
+    .ivh-tech td { padding: .4rem 1rem; vertical-align: top; border-top: 1px solid #f3f4f5; }
+    .ivh-tech td:first-child { color: #6c868e; width: 45%; }
+  </style>
+{% endblock %}
+
+{% block content %}
+  {% import _self as m %}
+  {% set domain = 'Modules.Inpostvonhalsky.Admin' %}
+  {% set problemCount = status.problems|length %}
+
+  {# Where each kind of problem is fixed #}
+  {% set fixLinks = {
+    'connection': configurationUrl,
+    'environment': configurationUrl,
+    'catalog': path('inpost_category_mapping_list'),
+    'offers': path('inpost_offers_list'),
+    'orders': path('admin_inpost_orders_index')
+  } %}
+
+  <div class="ivh">
+
+    {# 1. Overall answer #}
+    {% set hero = {
+      'ok': ['check_circle', 'Integration is working correctly', 'Offers and orders are synchronized automatically.'],
+      'warning': ['error_outline', 'Integration works, but needs attention', 'Synchronization runs - review the items below.'],
+      'error': ['cancel', 'Integration needs fixing', 'Some data is not being synchronized - fix the items below.']
+    } %}
+    {% set h = hero[status.overall] ?? hero['warning'] %}
+    <div class="card ivh-hero ivh-hero-{{ status.overall }}">
+      <i class="material-icons ivh-hero-icon">{{ h[0] }}</i>
+      <div>
+        <h2>{{ h[1]|trans({}, domain) }}</h2>
+        <p>
+          {{ h[2]|trans({}, domain) }}
+          <span class="ml-2">&middot; {{ 'Checked at %time%'|trans({'%time%': status.generated_at|date('H:i')}, domain) }}</span>
+        </p>
+      </div>
+    </div>
+
+    {# 2. Areas #}
+    <div class="ivh-areas">
+      {% for area in status.areas %}
+        <div class="card ivh-area">
+          <div class="ivh-area-head">
+            <i class="material-icons">{{ area.icon }}</i>{{ area.title }}
+          </div>
+          <div class="ivh-area-value" title="{{ area.headline }}">{{ area.headline }}</div>
+          <div class="ivh-area-caption">{{ area.caption }}</div>
+          <div class="ivh-area-state">
+            {{ m.dot(area.status) }}
+            {% if area.issues == 0 %}
+              {{ 'All good'|trans({}, domain) }}
+            {% elseif area.issues == 1 %}
+              {{ '1 item to check'|trans({}, domain) }}
+            {% else %}
+              {{ '%count% items to check'|trans({'%count%': area.issues}, domain) }}
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {# 3. Only what needs fixing #}
+    {% if problemCount > 0 %}
+      <h3 class="ivh-section-title">{{ 'To fix'|trans({}, domain) }}</h3>
+      <div class="card">
+        {% for problem in status.problems|slice(0, 5) %}
+          {{ m.problem_row(problem, fixLinks, domain) }}
+        {% endfor %}
+        {% if problemCount > 5 %}
+          <details class="ivh-more">
+            <summary>{{ 'Show %count% more'|trans({'%count%': problemCount - 5}, domain) }}</summary>
+            {% for problem in status.problems|slice(5) %}
+              {{ m.problem_row(problem, fixLinks, domain) }}
+            {% endfor %}
+          </details>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# 4. Technical details - collapsed #}
+    <details class="ivh-details">
+      <summary><i class="material-icons">chevron_right</i>{{ 'Technical details'|trans({}, domain) }}</summary>
+
+      <div class="ivh-tech">
+        {% for key in ['connection', 'environment', 'cron', 'catalog', 'offers', 'orders', 'journal'] %}
+          {% set section = status.sections[key] %}
+          <div class="card">
+            <h4>{{ m.dot(section.status) }}{{ section.title }}</h4>
+            <table class="table">
+              {% for check in section.checks %}
+                <tr>
+                  <td>{{ check.label }}</td>
+                  <td>{{ m.dot(check.status) }}{{ check.value }}</td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+        {% endfor %}
+
+        <div class="card">
+          <h4>{{ 'Scheduled jobs'|trans({}, domain) }}</h4>
+          <table class="table">
+            {% for job in status.cron_jobs %}
+              <tr>
+                <td>{{ job.label }}</td>
+                <td>
+                  {{ m.dot(job.status) }}
+                  {% if not job.enabled %}
+                    {{ 'disabled'|trans({}, domain) }}
+                  {% elseif job.running %}
+                    {{ 'running now'|trans({}, domain) }}
+                  {% else %}
+                    {{ job.last_run_ago ?? 'never'|trans({}, domain) }} &middot; {{ job.interval }}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        </div>
+
+        {% if status.journal_top is not empty %}
+          <div class="card">
+            <h4>{{ 'Most frequent problems (7 days)'|trans({}, domain) }}</h4>
+            <table class="table">
+              {% for row in status.journal_top|slice(0, 5) %}
+                <tr>
+                  <td>{{ row.message }}</td>
+                  <td>{{ m.dot(row.level == 'warning' ? 'warning' : 'error') }}&times;{{ row.cnt }} &middot; {{ row.last_at|date('d.m H:i') }}</td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+        {% endif %}
+      </div>
+    </details>
+
+  </div>
+{% endblock %}

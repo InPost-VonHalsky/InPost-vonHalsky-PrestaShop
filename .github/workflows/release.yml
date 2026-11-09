@@ -1,0 +1,60 @@
+name: Release
+
+# Builds the installable module package (with vendor/) for a version tag
+# and attaches it to the GitHub release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer:v2
+
+      - name: Check version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          grep -q "\$this->version = '${TAG}';" inpostvonhalsky.php || { echo "inpostvonhalsky.php version != ${TAG}"; exit 1; }
+          grep -q "<!\[CDATA\[${TAG}\]\]>" config.xml || { echo "config.xml version != ${TAG}"; exit 1; }
+          echo "VERSION=${TAG}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+      - name: Build package
+        run: |
+          mkdir -p build/inpostvonhalsky
+          rsync -a ./ build/inpostvonhalsky/ \
+            --exclude '.git*' --exclude '.github' --exclude 'build' --exclude 'docs' \
+            --exclude 'phpstan.neon' --exclude 'composer.lock' --exclude 'config_*.xml' \
+            --exclude '*.zip'
+          cd build/inpostvonhalsky
+          test -f vendor/.htaccess   # written by the composer post-install script
+          find vendor -type d \( -name test -o -name tests -o -name docs -o -name doc \) -prune -exec rm -rf {} +
+          find vendor \( -name 'phpunit.xml*' -o -name '*.zip' -o -name '.php-cs-fixer*' \) -delete
+          cd ..
+          zip -rq "inpostvonhalsky-${VERSION}.zip" inpostvonhalsky
+          SIZE=$(stat -c %s "inpostvonhalsky-${VERSION}.zip")
+          echo "Package size: ${SIZE} bytes"
+          [ "$SIZE" -lt 2097152 ] || echo "::warning::Package is over 2 MB; some hosts limit the Module Manager upload size"
+
+      - name: Release notes from CHANGELOG
+        run: |
+          awk -v v="${VERSION}" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ && f {exit} f' CHANGELOG.md > build/notes.md
+          [ -s build/notes.md ] || echo "Release ${VERSION}" > build/notes.md
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.VERSION }}
+          body_path: build/notes.md
+          files: build/inpostvonhalsky-${{ env.VERSION }}.zip

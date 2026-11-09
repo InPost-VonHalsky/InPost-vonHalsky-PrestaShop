@@ -1,0 +1,43 @@
+{#
+/**
+ * The product of the offer as a form row: name, variant and identifiers.
+ * locked: true after the offer is saved (product can no longer be changed).
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+{% set product_name = offer.product is not null and offer.product.name ? offer.product.name : null %}
+{# The offer name usually ends with the variant already ("T-shirt - Rozmiar: L, Kolor: Biały") - then not repeated below #}
+{% set variant_in_name = combination_label|default(null) and product_name and combination_label in product_name %}
+<div class="form-group">
+    <div class="row">
+        <label class="col-sm-3 col-form-label">{{ 'Product'|trans({}, d) }}</label>
+        <div class="col-sm-9">
+            <div class="form-control-plaintext">
+                <div class="inpost-selected-product-name">
+                    {% if locked %}<i class="material-icons text-muted" style="font-size:16px;vertical-align:-2px;" title="{{ 'Product locked after save'|trans({}, d) }}">lock</i>{% endif %}
+                    {% if variant_in_name %}<span class="js-offer-combination">{{ product_name }}</span>{% else %}{{ product_name ?: ('#' ~ offer.prestashopOfferId) }}{% endif %}
+                </div>
+                <div class="inpost-selected-product-meta">
+                    {% if combination_label|default(null) and not variant_in_name %}
+                        <span class="js-offer-combination">{{ 'Variant'|trans({}, d) }}: <strong>{{ combination_label }}</strong></span>
+                    {% endif %}
+                    {% if combination_label|default(null) and not locked %}
+                        <span><a href="{{ path('inpost_offers_create', {product_id: offer.prestashopOfferId}) }}">{{ 'Change variant'|trans({}, d) }}</a></span>
+                    {% endif %}
+                    {% if offer.product is not null and offer.product.sku %}
+                        <span>{{ 'Reference'|trans({}, d) }}: {{ offer.product.sku }}</span>
+                    {% endif %}
+                    <span>ID: {{ offer.prestashopOfferId }}</span>
+                    <span><a href="{{ path('admin_product_form', {'id': offer.prestashopOfferId}) }}" target="_blank" rel="noopener">{{ 'Open in catalog'|trans({}, d) }} <i class="material-icons" style="font-size:13px;vertical-align:-2px;">open_in_new</i></a></span>
+                </div>
+            </div>
+            {% if locked %}
+                <small class="form-text text-muted">{{ 'The product cannot be changed after the offer is saved.'|trans({}, d) }}</small>
+            {% endif %}
+        </div>
+    </div>
+</div>

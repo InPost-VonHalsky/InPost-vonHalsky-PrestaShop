@@ -1,0 +1,81 @@
+{#
+/**
+ * InPost Orders Grid Index Template
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="row">
+    <div class="col">
+      {% block inpost_orders_header %}
+        <div class="card">
+          <h3 class="card-header">
+            <i class="material-icons">local_shipping</i>
+            {{ 'InPost Orders'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+          </h3>
+          <div class="card-body">
+            <p class="card-text">
+              {{ 'Manage your InPost shipments and track their status'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </p>
+          </div>
+        </div>
+      {% endblock %}
+
+      {% block inpost_orders_grid %}
+        {{ include('@PrestaShop/Admin/Common/Grid/grid_panel.html.twig', {
+          'grid': grid,
+        }) }}
+      {% endblock %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script>
+    $(document).ready(function() {
+      // Initialize grid with FiltersResetExtension for reset button functionality
+      if (window.prestashop && window.prestashop.component && window.prestashop.component.GridExtensions) {
+        const inpostOrdersGrid = new window.prestashop.component.Grid('inpost_orders');
+        inpostOrdersGrid.addExtension(new window.prestashop.component.GridExtensions.FiltersResetExtension());
+        inpostOrdersGrid.addExtension(new window.prestashop.component.GridExtensions.SortingExtension());
+      }
+
+      // Initialize tooltips
+      $('[data-toggle="tooltip"]').tooltip();
+
+      // Handle Sync Orders toolbar button (converts GET link to POST)
+      $(document).on('click', '#page-header-desc-inpost_orders-sync, a[href*="/orders/sync"]', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          var syncUrl = $(this).attr('href');
+          if (!syncUrl) return;
+
+          var form = $('<form>', {
+              'method': 'POST',
+              'action': syncUrl
+          });
+
+          var csrfToken = $('meta[name="csrf-token"]').attr('content') ||
+                         $('input[name="_token"]').val();
+          if (csrfToken) {
+              form.append($('<input>', {
+                  'type': 'hidden',
+                  'name': '_token',
+                  'value': csrfToken
+              }));
+          }
+
+          $('body').append(form);
+          form.submit();
+      });
+    });
+  </script>
+{% endblock %}

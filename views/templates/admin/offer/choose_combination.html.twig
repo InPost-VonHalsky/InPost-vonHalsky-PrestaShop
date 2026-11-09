@@ -1,0 +1,226 @@
+{#
+ # Offer creation for a product with combinations - one page: every variant
+ # with its check and a checkbox. "Create drafts for the selected" creates one
+ # draft offer per ticked variant; "Create offer" opens the form for one variant.
+ #
+ # @author    SII Poland
+ # @copyright 2025 SII Poland
+ # @license   Commercial
+ #}
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+
+{% block content %}
+<div class="container-fluid" id="inpost-choose-combination">
+    <div class="card">
+        <div class="card-header d-flex align-items-start">
+            {% if product_image_url %}
+                <img src="{{ product_image_url }}" alt="" class="mr-3 rounded" style="width: 56px; height: 56px; object-fit: cover;">
+            {% endif %}
+            <div>
+                <h3 class="card-title mb-0">{{ 'Choose the variants to list'|trans({}, d) }}</h3>
+                <div class="text-muted">
+                    {{ product_name }}
+                    {% if product_reference %}<code class="ml-1">{{ product_reference }}</code>{% endif %}
+                    <span class="ml-1">({{ 'PrestaShop Product ID'|trans({}, d) }}: {{ product_id }})</span>
+                </div>
+            </div>
+            <a href="{{ path('inpost_offers_list') }}" class="ml-auto text-muted js-close-page"
+               title="{{ 'Close'|trans({}, d) }}" aria-label="{{ 'Close'|trans({}, d) }}" style="line-height: 1;">
+                <i class="material-icons" style="font-size: 28px;">close</i>
+            </a>
+        </div>
+
+        {% if created_drafts is not empty %}
+            {# Next step right after creating drafts: send them, or leave. Not an .alert:
+               the back office alert styles turn the buttons inside into links #}
+            <div class="card-body pb-0 js-created-panel">
+                <div class="border border-success rounded p-3" style="background: #f0faf3;">
+                    <h4 class="text-success mb-2">
+                        <i class="material-icons align-middle">check_circle</i>
+                        {{ '%count% draft offer(s) created'|trans({'%count%': created_drafts|length}, d) }}
+                    </h4>
+                    <ul class="mb-2">
+                        {% for draft in created_drafts %}
+                            <li><a href="{{ path('inpost_offers_edit', {id: draft.offer_id}) }}">#{{ draft.offer_id }}</a> {{ draft.label }}</li>
+                        {% endfor %}
+                    </ul>
+                    <p class="mb-3 text-muted">{{ 'Send them to InPost now, or open a draft to complete it first.'|trans({}, d) }}</p>
+                    <div class="d-flex flex-wrap align-items-center">
+                        <form method="post" action="{{ path('inpost_offers_publish_combinations', {productId: product_id}) }}" class="mr-2 mb-0 js-publish-form"
+                              onsubmit="this.querySelector('button[type=submit]').disabled = true;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('inpost_offers_publish_combinations') }}">
+                            {% for draft in created_drafts %}
+                                <input type="hidden" name="offer_ids[]" value="{{ draft.offer_id }}">
+                            {% endfor %}
+                            <button type="submit" class="btn btn-success js-publish-created">
+                                <i class="material-icons align-middle" style="font-size: 18px;">send</i>
+                                {{ 'Send to InPost'|trans({}, d) }} ({{ created_drafts|length }})
+                            </button>
+                        </form>
+                        <a href="{{ path('inpost_offers_list') }}" class="btn btn-outline-secondary js-close-created">
+                            {{ 'Close'|trans({}, d) }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <form method="post" action="{{ path('inpost_offers_create_combinations', {productId: product_id}) }}" id="combinations-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('inpost_offers_create_combinations') }}">
+
+            <div class="card-body">
+                <p class="text-muted">
+                    {{ 'Each combination becomes a separate InPost offer with its own stock, price, EAN and attribute values (e.g. size). Tick the variants and create their drafts at once, or open the form for one variant.'|trans({}, d) }}
+                </p>
+
+                {% if whole_product_active %}
+                    <div class="alert alert-warning">
+                        {{ 'The product has offer #%id% covering all its combinations - close it to list the combinations separately.'|trans({'%id%': whole_product_active.offer_id}, d) }}
+                        <a href="{{ path('inpost_offers_edit', {id: whole_product_active.offer_id}) }}" class="alert-link ml-1">{{ 'Open offer'|trans({}, d) }}</a>
+                    </div>
+                {% elseif product_messages is not empty %}
+                    <div class="alert {{ product_status == 'blocked' ? 'alert-danger' : 'alert-warning' }} js-product-messages">
+                        <ul class="mb-0">
+                            {% for message in product_messages %}<li>{{ message }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered js-combination-table">
+                        <thead class="thead-light">
+                            <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" class="js-select-all" title="{{ 'Select all variants'|trans({}, d) }}">
+                                </th>
+                                <th>{{ 'Variant'|trans({}, d) }}</th>
+                                <th>{{ 'SKU'|trans({}, d) }}</th>
+                                <th>{{ 'EAN'|trans({}, d) }}</th>
+                                <th class="text-right">{{ 'Stock'|trans({}, d) }}</th>
+                                <th class="text-right">{{ 'Price'|trans({}, d) }}</th>
+                                <th>{{ 'Status'|trans({}, d) }}</th>
+                                <th class="text-right">{{ 'InPost offer'|trans({}, d) }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for combination in combinations %}
+                                {% set badge = {ready: 'badge-success', warning: 'badge-warning', blocked: 'badge-danger'}[combination.status]|default('badge-secondary') %}
+                                <tr data-product-attribute-id="{{ combination.id_product_attribute }}">
+                                    <td>
+                                        <input type="checkbox" name="combinations[]" value="{{ combination.id_product_attribute }}"
+                                               class="js-combination-cb"
+                                               {{ combination.selectable ? '' : 'disabled' }} {{ combination.selected ? 'checked' : '' }}>
+                                    </td>
+                                    <td>
+                                        <strong>{{ combination.label }}</strong>
+                                        {% if combination.default_on %}<span class="badge badge-secondary ml-1">{{ 'default'|trans({}, d) }}</span>{% endif %}
+                                    </td>
+                                    <td>{{ combination.reference ?: '-' }}</td>
+                                    <td>{{ combination.ean13 ?: '-' }}</td>
+                                    <td class="text-right {{ combination.quantity > 0 ? '' : 'text-danger' }}">{{ combination.quantity }}</td>
+                                    <td class="text-right">{{ combination.price|number_format(2, ',', ' ') }}</td>
+                                    <td>
+                                        <span class="badge {{ badge }}">{{ combination.status|trans({}, d) }}</span>
+                                        {% if combination.messages is not empty %}
+                                            <ul class="mb-0 pl-3 small">
+                                                {% for message in combination.messages %}<li>{{ message }}</li>{% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right text-nowrap">
+                                        {% if combination.offer %}
+                                            <a href="{{ path('inpost_offers_edit', {id: combination.offer.offer_id}) }}">#{{ combination.offer.offer_id }}</a>
+                                            <span class="badge badge-secondary">{{ combination.offer.status }}</span>
+                                        {% elseif combination.selectable %}
+                                            <a href="{{ path('inpost_offers_create', {product_id: product_id, product_attribute_id: combination.id_product_attribute}) }}"
+                                               class="btn btn-sm btn-outline-primary js-choose-combination">
+                                                {{ 'Create offer'|trans({}, d) }}
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-footer d-flex flex-wrap justify-content-between align-items-start">
+                <div class="mb-2">
+                    <button type="submit" class="btn btn-primary js-create-selected" disabled>
+                        <i class="material-icons align-middle" style="font-size: 18px;">library_add</i>
+                        {{ 'Create drafts for the selected'|trans({}, d) }} <span class="js-selected-count"></span>
+                    </button>
+                    <a href="{{ path('inpost_offers_list') }}" class="btn btn-outline-secondary">{{ 'Cancel'|trans({}, d) }}</a>
+                </div>
+
+                <div class="text-right mb-2" style="max-width: 520px;">
+                    {% if whole_product.offer %}
+                        <small class="text-muted">
+                            {{ 'Offer of the whole product'|trans({}, d) }}:
+                            <a href="{{ path('inpost_offers_edit', {id: whole_product.offer.offer_id}) }}">#{{ whole_product.offer.offer_id }}</a>
+                            <span class="badge badge-secondary">{{ whole_product.offer.status }}</span>
+                        </small>
+                    {% elseif not whole_product.blocked_by %}
+                        <a href="{{ path('inpost_offers_create', {product_id: product_id, product_attribute_id: 0}) }}" class="btn btn-link btn-sm js-whole-product">
+                            {{ 'One offer for the whole product instead'|trans({}, d) }}
+                        </a>
+                        <br>
+                        <small class="text-muted">
+                            {{ 'Not recommended: buyers cannot choose a variant and the offer shares the total stock (%quantity%) of all combinations.'|trans({'%quantity%': whole_product.quantity}, d) }}
+                        </small>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+    (function () {
+        'use strict';
+
+        var form = document.getElementById('combinations-form');
+        if (!form) {
+            return;
+        }
+        var selectAll = form.querySelector('.js-select-all');
+        var button = form.querySelector('.js-create-selected');
+        var countEl = form.querySelector('.js-selected-count');
+
+        function enabledBoxes() {
+            return Array.prototype.slice.call(form.querySelectorAll('.js-combination-cb:not(:disabled)'));
+        }
+
+        function refresh() {
+            var boxes = enabledBoxes();
+            var checked = boxes.filter(function (cb) { return cb.checked; }).length;
+            button.disabled = checked === 0;
+            countEl.textContent = checked > 0 ? '(' + checked + ')' : '';
+            selectAll.checked = boxes.length > 0 && checked === boxes.length;
+            selectAll.disabled = boxes.length === 0;
+        }
+
+        // Native listeners only: the back office scripts fire synthetic jQuery "change" events
+        selectAll.addEventListener('change', function () {
+            enabledBoxes().forEach(function (cb) { cb.checked = selectAll.checked; });
+            refresh();
+        });
+        form.addEventListener('change', function (e) {
+            if (e.target.classList.contains('js-combination-cb')) {
+                refresh();
+            }
+        });
+        form.addEventListener('submit', function () {
+            button.disabled = true;
+        });
+
+        refresh();
+    })();
+    </script>
+{% endblock %}

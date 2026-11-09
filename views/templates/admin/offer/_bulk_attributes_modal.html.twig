@@ -1,0 +1,81 @@
+{#
+/**
+ * "Edit attributes" dialog of the offers list (views/js/offer-bulk-attributes.js):
+ * pick an attribute of the selected offers, set / clear / restore it, preview
+ * the result per offer and apply.
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+<div class="modal fade" id="bulk-attributes-modal" tabindex="-1" role="dialog" aria-hidden="true"
+     data-attributes-url="{{ path('inpost_ajax_offers_bulk_attributes') }}"
+     data-preview-url="{{ path('inpost_ajax_offers_bulk_attributes_preview') }}"
+     data-apply-url="{{ path('inpost_ajax_offers_bulk_attributes_apply') }}"
+     data-csrf="{{ csrf_token('inpost_offers_bulk_attributes') }}">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ 'Edit attributes of the selected offers'|trans({}, d) }} <span id="ba-offer-count"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="{{ 'Close'|trans({}, d) }}"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">
+                    {{ 'The value is set on the InPost offers only, the products in PrestaShop do not change. A value set here is no longer updated from PrestaShop until you restore it.'|trans({}, d) }}
+                </p>
+
+                <div id="ba-error" class="alert alert-danger d-none"></div>
+
+                <div class="form-group">
+                    <label class="font-weight-bold" for="ba-attributes">{{ 'Attributes'|trans({}, d) }}</label>
+                    <select id="ba-attributes" class="form-control" multiple></select>
+                    <small class="form-text text-muted">{{ 'Attributes of the InPost categories of the selected offers. An attribute with the same name in several categories is edited in all of them.'|trans({}, d) }}</small>
+                </div>
+
+                <table class="table table-sm d-none" id="ba-changes">
+                    <thead>
+                        <tr>
+                            <th style="width:28%">{{ 'Attribute'|trans({}, d) }}</th>
+                            <th style="width:22%">{{ 'Operation'|trans({}, d) }}</th>
+                            <th>{{ 'Value / source'|trans({}, d) }}</th>
+                            <th style="width:32px"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <p class="text-muted small d-none" id="ba-map-note">
+                    {{ '"Map from PrestaShop" saves the source in the category mapping of the InPost categories of the selected offers: other and future offers of these categories also take the value from the product. The selected offers get the value right away.'|trans({}, d) }}
+                </p>
+
+                <div id="ba-preview" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">{{ 'Close'|trans({}, d) }}</button>
+                <button type="button" class="btn btn-outline-primary" id="ba-preview-btn" disabled>
+                    <i class="material-icons">visibility</i>
+                    {{ 'Preview'|trans({}, d) }}
+                </button>
+                <button type="button" class="btn btn-primary" id="ba-apply-btn" disabled>
+                    <i class="material-icons">done</i>
+                    {{ 'Apply'|trans({}, d) }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    #ba-preview .table { font-size: 12px; }
+    #ba-preview .ba-table-wrap { max-height: 360px; overflow-y: auto; }
+    #ba-preview tr.ba-skip td { color: #6c868e; }
+    /* PrestaShop styles only the single select2 */
+    #bulk-attributes-modal .select2-selection--multiple { border: 1px solid #bbcdd2; border-radius: 4px; min-height: 38px; padding: 2px 6px; cursor: text; }
+    #bulk-attributes-modal .select2-selection--multiple .select2-selection__rendered { display: block; margin: 0; padding: 0; list-style: none; text-align: left; }
+    #bulk-attributes-modal .select2-selection--multiple .select2-selection__choice { display: inline-block; margin: 4px 6px 0 0; padding: 2px 8px; background: #eff1f2; border: 1px solid #bbcdd2; border-radius: 3px; font-size: 12px; }
+    #bulk-attributes-modal .select2-selection--multiple .select2-selection__choice__remove { margin-right: 4px; color: #6c868e; cursor: pointer; }
+    #bulk-attributes-modal .select2-search--inline .select2-search__field { border: 0; outline: 0; margin-top: 6px; min-width: 200px; }
+    #ba-changes td { vertical-align: middle; }
+    #ba-changes .ba-meta { display: block; color: #6c868e; font-size: 11px; }
+    #ba-preview h6 { margin-top: .75rem; }
+</style>

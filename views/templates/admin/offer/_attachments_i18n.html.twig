@@ -1,0 +1,28 @@
+{#
+/**
+ * Translations for views/js/offer-attachments.js
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+<script>
+  window.InpostI18n = Object.assign(window.InpostI18n || {}, {{ {
+    'Waiting': 'Waiting'|trans({}, d),
+    'Sending...': 'Sending...'|trans({}, d),
+    'In InPost': 'In InPost'|trans({}, d),
+    'Error': 'Error'|trans({}, d),
+    'Removing...': 'Removing...'|trans({}, d),
+    'Choose a file to add.': 'Choose a file to add.'|trans({}, d),
+    'File %name% is too large (%size%). The limit is %max% MB.': 'File %name% is too large (%size%). The limit is %max% MB.'|trans({}, d),
+    'Remove attachment %name%? It is removed from the offer in InPost too.': 'Remove attachment %name%? It is removed from the offer in InPost too.'|trans({}, d),
+    'Send again': 'Send again'|trans({}, d),
+    'Remove': 'Remove'|trans({}, d),
+    'PrestaShop file': 'PrestaShop file'|trans({}, d),
+    'Own file': 'Own file'|trans({}, d),
+    'The file is too large for this server.': 'The file is too large for this server.'|trans({}, d),
+    'Request failed': 'Request failed'|trans({}, d)
+  }|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }});
+</script>

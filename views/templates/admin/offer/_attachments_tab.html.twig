@@ -1,0 +1,107 @@
+{#
+/**
+ * "Attachments" tab of the offer form (GOKINT-1099): document attachments sent
+ * to InPost - manuals, energy labels, safety information...
+ * Driven by views/js/offer-attachments.js; no <form> here, the tab sits inside
+ * the offer form.
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+{% set max_mb = constant('Inpost\\VonHalsky\\Service\\Offer\\OfferAttachmentValidator::MAX_SIZE') // 1048576 %}
+<div class="tab-pane fade" id="attachments-tab" role="tabpanel">
+    <div class="form-group-section" id="inpost-attachments"
+         data-offer-id="{{ offer.id }}"
+         data-list-url="{{ path('inpost_ajax_offer_attachments_list') }}"
+         data-upload-url="{{ path('inpost_ajax_offer_attachments_upload') }}"
+         data-add-ps-url="{{ path('inpost_ajax_offer_attachments_add_ps') }}"
+         data-remove-url="{{ path('inpost_ajax_offer_attachments_remove') }}"
+         data-retry-url="{{ path('inpost_ajax_offer_attachments_retry') }}"
+         data-csrf="{{ csrf_token('inpost_offer_attachments') }}"
+         data-max-size="{{ constant('Inpost\\VonHalsky\\Service\\Offer\\OfferAttachmentValidator::MAX_SIZE') }}">
+        <h3>{{ 'Attachments'|trans({}, d) }}</h3>
+        <p class="text-muted">
+            {{ 'Documents shown with the offer in InPost: user manuals, energy labels, safety information. PDF, JPG or PNG, up to %max% MB.'|trans({'%max%': max_mb}, d) }}
+        </p>
+
+        <div class="alert alert-info js-attachments-queued" style="display: none;">
+            {{ 'The offer is not in InPost yet. Added files wait and are sent automatically once the offer is created there.'|trans({}, d) }}
+        </div>
+
+        <div class="js-attachments-message"></div>
+
+        <div class="js-attachments-loading text-center p-3" style="display: none;">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+
+        <table class="table table-striped js-attachments-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>{{ 'File'|trans({}, d) }}</th>
+                    <th>{{ 'Type'|trans({}, d) }}</th>
+                    <th>{{ 'Source'|trans({}, d) }}</th>
+                    <th>{{ 'Status'|trans({}, d) }}</th>
+                    <th>{{ 'Added'|trans({}, d) }}</th>
+                    <th class="text-right">{{ 'Actions'|trans({}, d) }}</th>
+                </tr>
+            </thead>
+            <tbody class="js-attachments-rows"></tbody>
+        </table>
+        <p class="text-muted js-attachments-empty" style="display: none;">{{ 'No attachments yet.'|trans({}, d) }}</p>
+
+        <hr>
+
+        <h4>{{ 'Add a file'|trans({}, d) }}</h4>
+        <div class="form-row align-items-end">
+            <div class="form-group col-md-4">
+                <label for="inpost-attachment-type">{{ 'Attachment type'|trans({}, d) }}</label>
+                <select id="inpost-attachment-type" class="form-control js-attachment-type">
+                    {% for type, label in constant('Inpost\\VonHalsky\\Controller\\Admin\\Ajax\\OfferAttachmentController::TYPE_LABELS') %}
+                        <option value="{{ type }}">{{ label|trans({}, d) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group col-md-5">
+                <label for="inpost-attachment-file">{{ 'File'|trans({}, d) }}</label>
+                {# No name: never submitted with the offer form #}
+                <input type="file" id="inpost-attachment-file" class="form-control-file js-attachment-file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+            </div>
+            <div class="form-group col-md-3">
+                <button type="button" class="btn btn-outline-primary js-attachment-upload">
+                    <i class="material-icons">upload_file</i>
+                    {{ 'Add file'|trans({}, d) }}
+                </button>
+            </div>
+        </div>
+
+        <div class="js-attachments-ps" style="display: none;">
+            <h4>{{ 'Files of the product in PrestaShop'|trans({}, d) }}</h4>
+            <div class="form-row align-items-end">
+                <div class="form-group col-md-4">
+                    <label for="inpost-attachment-ps-type">{{ 'Attachment type'|trans({}, d) }}</label>
+                    <select id="inpost-attachment-ps-type" class="form-control js-attachment-ps-type">
+                        {% for type, label in constant('Inpost\\VonHalsky\\Controller\\Admin\\Ajax\\OfferAttachmentController::TYPE_LABELS') %}
+                            <option value="{{ type }}">{{ label|trans({}, d) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-5">
+                    <label for="inpost-attachment-ps-file">{{ 'File'|trans({}, d) }}</label>
+                    <select id="inpost-attachment-ps-file" class="form-control js-attachment-ps-file"></select>
+                </div>
+                <div class="form-group col-md-3">
+                    <button type="button" class="btn btn-outline-primary js-attachment-add-ps">
+                        <i class="material-icons">add</i>
+                        {{ 'Add file'|trans({}, d) }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        <p class="text-muted small js-attachments-ps-none" style="display: none;">
+            {{ 'Files attached to the product in Catalog > Files can also be added here.'|trans({}, d) }}
+        </p>
+    </div>
+</div>

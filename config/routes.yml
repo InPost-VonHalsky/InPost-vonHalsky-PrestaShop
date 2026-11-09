@@ -1,0 +1,389 @@
+# ====================
+# Integration Status Panel
+# ====================
+inpost_status:
+  path: /admin/inpost/status
+  controller: Inpost\VonHalsky\Controller\Admin\StatusController::indexAction
+  methods: [GET]
+  defaults:
+    _legacy_controller: AdminInpostStatus
+
+inpost_status_report:
+  path: /admin/inpost/status/report
+  controller: Inpost\VonHalsky\Controller\Admin\StatusController::reportAction
+  methods: [GET]
+  defaults:
+    _legacy_controller: AdminInpostStatus
+
+inpost_jobs:
+  path: /admin/inpost/jobs
+  controller: Inpost\VonHalsky\Controller\Admin\JobsController::indexAction
+  methods: [GET]
+  defaults:
+    _legacy_controller: AdminInpostStatus
+
+inpost_jobs_data:
+  path: /admin/inpost/jobs/data
+  controller: Inpost\VonHalsky\Controller\Admin\JobsController::dataAction
+  methods: [GET]
+  defaults:
+    _legacy_controller: AdminInpostStatus
+
+inpost_jobs_stop:
+  path: /admin/inpost/jobs/stop
+  controller: Inpost\VonHalsky\Controller\Admin\JobsController::stopAction
+  methods: [POST]
+  defaults:
+    _legacy_controller: AdminInpostStatus
+
+# ====================
+# Offer Routes
+# ====================
+inpost_offers_list:
+  path: /admin/inpost/offers
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::listAction
+  methods: [GET]
+  defaults:
+    _legacy_controller: AdminInpostOffers
+
+inpost_offers_create:
+  path: /admin/inpost/offers/create
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::createAction
+  methods: [GET, POST]
+
+inpost_offers_edit:
+  path: /admin/inpost/offers/{id}/edit
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::editAction
+  methods: [GET, POST]
+  requirements:
+    id: '\d+'
+
+inpost_offers_delete:
+  path: /admin/inpost/offers/{id}/delete
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::deleteAction
+  methods: [POST, DELETE]
+  requirements:
+    id: '\d+'
+
+inpost_offers_create_combinations:
+  path: /admin/inpost/offers/create/{productId}/combinations
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::createCombinationsAction
+  methods: [POST]
+  requirements:
+    productId: '\d+'
+
+inpost_offers_publish_combinations:
+  path: /admin/inpost/offers/create/{productId}/combinations/publish
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::publishCombinationsAction
+  methods: [POST]
+  requirements:
+    productId: '\d+'
+
+inpost_offers_bulk_delete:
+  path: /admin/inpost/offers/bulk/delete
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::bulkDeleteAction
+  methods: [POST]
+
+inpost_offers_bulk_close:
+  path: /admin/inpost/offers/bulk/close
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::bulkCloseAction
+  methods: [POST]
+
+inpost_offers_bulk_reopen:
+  path: /admin/inpost/offers/bulk/reopen
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::bulkReopenAction
+  methods: [POST]
+
+inpost_offers_send:
+  path: /admin/inpost/offers/{id}/send
+  controller: Inpost\VonHalsky\Controller\Admin\OfferController::sendAction
+  methods: [POST]
+  requirements:
+    id: '\d+'
+
+# ====================
+# Category Mapping Routes
+# ====================
+inpost_category_mapping_list:
+  path: /admin/inpost/category-mapping
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::listAction
+  methods: [GET]
+  defaults:
+    _legacy_controller: AdminInpostCategoryMapping
+
+inpost_category_mapping_store:
+  path: /admin/inpost/category-mapping/store
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::storeAction
+  methods: [POST]
+
+inpost_category_mapping_delete:
+  path: /admin/inpost/category-mapping/{id}/delete
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::deleteAction
+  methods: [POST, DELETE]
+  requirements:
+    id: '\d+'
+
+inpost_category_mapping_tree:
+  path: /admin/inpost/category-mapping/tree
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::treeAction
+  methods: [GET]
+
+inpost_category_mapping_details:
+  path: /admin/inpost/category-mapping/details
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::detailsAction
+  methods: [GET]
+
+inpost_category_mapping_refresh_attributes:
+  path: /admin/inpost/category-mapping/{id}/refresh-attributes
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::refreshAttributesAction
+  methods: [POST]
+  requirements:
+    id: '\d+'
+
+inpost_category_mapping_assistant_data:
+  path: /admin/inpost/category-mapping/assistant/data
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::assistantDataAction
+  methods: [GET]
+
+inpost_category_mapping_assistant_search:
+  path: /admin/inpost/category-mapping/assistant/search
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::assistantSearchAction
+  methods: [GET]
+
+inpost_category_mapping_assistant_bulk:
+  path: /admin/inpost/category-mapping/assistant/bulk
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::assistantBulkAction
+  methods: [POST]
+
+inpost_category_mapping_assistant_unmap:
+  path: /admin/inpost/category-mapping/assistant/unmap
+  controller: Inpost\VonHalsky\Controller\Admin\CategoryMappingController::assistantUnmapAction
+  methods: [POST]
+
+# ====================
+# Attribute Mapping Routes
+# ====================
+inpost_attribute_mapping_view:
+  path: /admin/inpost/attribute-mapping
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::viewAction
+  methods: [GET]
+
+inpost_attribute_mapping_edit:
+  path: /admin/inpost/attribute-mapping/{id}/edit
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::editAction
+  methods: [GET]
+  requirements:
+    id: '\d+'
+
+inpost_attribute_mapping_source:
+  path: /admin/inpost/attribute-mapping/{id}/source
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::sourceAction
+  methods: [GET]
+  requirements:
+    id: '\d+'
+
+inpost_attribute_mapping_source_save:
+  path: /admin/inpost/attribute-mapping/{id}/source
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::saveSourceAction
+  methods: [POST]
+  requirements:
+    id: '\d+'
+
+inpost_attribute_mapping_assistant_data:
+  path: /admin/inpost/attribute-mapping/assistant/data
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::assistantDataAction
+  methods: [GET]
+
+inpost_attribute_mapping_assistant_values:
+  path: /admin/inpost/attribute-mapping/assistant/values
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::assistantValuesAction
+  methods: [GET]
+
+inpost_attribute_mapping_assistant_apply:
+  path: /admin/inpost/attribute-mapping/assistant/apply
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::assistantApplyAction
+  methods: [POST]
+
+inpost_attribute_mapping_assistant_apply_bulk:
+  path: /admin/inpost/attribute-mapping/assistant/apply-bulk
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::assistantApplyBulkAction
+  methods: [POST]
+
+inpost_attribute_mapping_assistant_save_values:
+  path: /admin/inpost/attribute-mapping/assistant/values
+  controller: Inpost\VonHalsky\Controller\Admin\AttributeMappingController::assistantSaveValuesAction
+  methods: [POST]
+
+# ====================
+# AJAX Routes
+# ====================
+inpost_ajax_product_autocomplete:
+  path: /admin/inpost/ajax/products
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\ProductAutocompleteController::searchAction
+  methods: [GET]
+
+inpost_ajax_events_list:
+  path: /admin/inpost/ajax/events/list
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\EventController::listAction
+  methods: [GET]
+
+inpost_ajax_offer_close:
+  path: /admin/inpost/ajax/offer/close
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferStatusController::closeAction
+  methods: [POST]
+
+inpost_ajax_offer_reopen:
+  path: /admin/inpost/ajax/offer/reopen
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferStatusController::reopenAction
+  methods: [POST]
+
+# GOKINT-927: Productization hint endpoints
+inpost_ajax_offer_hint_search:
+  path: /admin/inpost/ajax/offer/hint/search
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferHintController::searchAction
+  methods: [POST]
+
+inpost_ajax_offer_hint_apply:
+  path: /admin/inpost/ajax/offer/hint/apply
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferHintController::applyAction
+  methods: [POST]
+
+inpost_ajax_offer_hint_prepare:
+  path: /admin/inpost/ajax/offer/hint/prepare
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferHintController::prepareAction
+  methods: [POST]
+
+# Change the InPost category of an existing offer
+inpost_ajax_offer_category_search:
+  path: /admin/inpost/ajax/offer/category/search
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferCategoryController::searchAction
+  methods: [GET]
+
+inpost_ajax_offer_category_preview:
+  path: /admin/inpost/ajax/offer/category/preview
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferCategoryController::previewAction
+  methods: [GET]
+
+# GOKINT-1102: Bulk attribute edit on the offers list
+inpost_ajax_offers_bulk_attributes:
+  path: /admin/inpost/ajax/offers/bulk/attributes
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferBulkAttributeController::attributesAction
+  methods: [POST]
+
+inpost_ajax_offers_bulk_attributes_preview:
+  path: /admin/inpost/ajax/offers/bulk/attributes/preview
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferBulkAttributeController::previewAction
+  methods: [POST]
+
+inpost_ajax_offers_bulk_attributes_apply:
+  path: /admin/inpost/ajax/offers/bulk/attributes/apply
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferBulkAttributeController::applyAction
+  methods: [POST]
+
+# GOKINT-1099: Offer document attachments (offer form tab)
+inpost_ajax_offer_attachments_list:
+  path: /admin/inpost/ajax/offer/attachments
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferAttachmentController::listAction
+  methods: [GET]
+
+inpost_ajax_offer_attachments_upload:
+  path: /admin/inpost/ajax/offer/attachments/upload
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferAttachmentController::uploadAction
+  methods: [POST]
+
+inpost_ajax_offer_attachments_add_ps:
+  path: /admin/inpost/ajax/offer/attachments/add-ps
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferAttachmentController::addPsAction
+  methods: [POST]
+
+inpost_ajax_offer_attachments_remove:
+  path: /admin/inpost/ajax/offer/attachments/remove
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferAttachmentController::removeAction
+  methods: [POST]
+
+inpost_ajax_offer_attachments_retry:
+  path: /admin/inpost/ajax/offer/attachments/retry
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferAttachmentController::retryAction
+  methods: [POST]
+
+# GOKINT-1098: Bulk price edit on the offers list
+inpost_ajax_offers_bulk_price_preview:
+  path: /admin/inpost/ajax/offers/bulk/price/preview
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferBulkPriceController::previewAction
+  methods: [POST]
+
+inpost_ajax_offers_bulk_price_apply:
+  path: /admin/inpost/ajax/offers/bulk/price/apply
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\OfferBulkPriceController::applyAction
+  methods: [POST]
+
+# GOKINT-930: Bulk offer creation
+inpost_bulk_offers_select:
+  path: /admin/inpost/offers/bulk/select
+  controller: Inpost\VonHalsky\Controller\Admin\BulkOfferController::selectAction
+  methods: [POST]
+
+inpost_bulk_offers_wizard:
+  path: /admin/inpost/offers/bulk/wizard
+  controller: Inpost\VonHalsky\Controller\Admin\BulkOfferController::wizardAction
+  methods: [GET]
+  defaults:
+    _legacy_controller: AdminInpostOffers
+
+inpost_ajax_bulk_offers_validate:
+  path: /admin/inpost/ajax/offers/bulk/validate
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\BulkOfferController::validateBatchAction
+  methods: [POST]
+
+inpost_ajax_bulk_offers_create:
+  path: /admin/inpost/ajax/offers/bulk/create
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\BulkOfferController::createBatchAction
+  methods: [POST]
+
+inpost_ajax_bulk_offers_publish:
+  path: /admin/inpost/ajax/offers/bulk/publish
+  controller: Inpost\VonHalsky\Controller\Admin\Ajax\BulkOfferController::publishBatchAction
+  methods: [POST]
+
+# ====================
+# Order Routes
+# ====================
+admin_inpost_orders_index:
+  path: /admin/inpost/orders
+  controller: Inpost\VonHalsky\Controller\Admin\InpostOrdersController::indexAction
+  methods: [GET]
+  defaults:
+    _legacy_controller: AdminInpostOrders
+
+admin_inpost_orders_search:
+  path: /admin/inpost/orders/search
+  controller: PrestaShopBundle\Controller\Admin\CommonController::searchGridAction
+  methods: [POST]
+  defaults:
+    _legacy_controller: AdminInpostOrders
+    gridDefinitionFactoryServiceId: prestashop.core.grid.definition.factory.inpost_orders
+    redirectRoute: admin_inpost_orders_index
+
+admin_inpost_orders_view:
+  path: /admin/inpost/orders/{inpostOrderId}/view
+  controller: Inpost\VonHalsky\Controller\Admin\InpostOrdersController::viewAction
+  methods: [GET]
+  requirements:
+    inpostOrderId: '\d+'
+
+admin_inpost_orders_view_inpost:
+  path: /admin/inpost/orders/{inpostOrderId}/view-inpost
+  controller: Inpost\VonHalsky\Controller\Admin\InpostOrdersController::viewInpostAction
+  methods: [GET]
+  requirements:
+    inpostOrderId: '\d+'
+
+admin_inpost_orders_export:
+  path: /admin/inpost/orders/export
+  controller: Inpost\VonHalsky\Controller\Admin\InpostOrdersController::exportAction
+  methods: [GET]
+
+admin_inpost_orders_sync:
+  path: /admin/inpost/orders/sync
+  controller: Inpost\VonHalsky\Controller\Admin\InpostOrdersController::syncAction
+  methods: [POST]

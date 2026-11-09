@@ -1,0 +1,327 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/themes/default/style.min.css"/>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css"/>
+    <link rel="stylesheet" href="{{ asset('../modules/inpostvonhalsky/views/css/mapping_assistant.css') }}?v={{ 'now'|date('YmdHis') }}"/>
+    <style>
+        .category-tree-sidebar {
+            position: sticky;
+            top: 20px;
+            border-right: 1px solid #e0e0e0;
+            padding-right: 20px;
+        }
+
+        .category-details-panel {
+            padding-left: 30px;
+            min-height: 400px;
+        }
+
+
+        .jstree-default .jstree-clicked {
+            background: #25b9d7 !important;
+            color: white !important;
+        }
+
+        .jstree-default .jstree-hovered {
+            background: #e8f4f8;
+        }
+
+        #inpost-tree-container {
+            margin-top: 10px;
+            min-height: 300px;
+            min-width: 360px;
+            overflow-x: auto;
+        }
+
+        /* Allow overflow in parent containers */
+        .category-tree-sidebar .card,
+        .category-tree-sidebar .card-body {
+            overflow: visible;
+        }
+
+        /* Remove card styling from tree sidebar */
+        .category-tree-sidebar .card {
+            border: none;
+            background: none;
+            box-shadow: none !important;
+        }
+
+        /* Ensure long category names don't truncate */
+        .jstree-default .jstree-anchor {
+            white-space: nowrap;
+        }
+
+        /* Reduce indentation to fit longer names */
+        .jstree-default .jstree-node {
+            margin-left: 15px;
+        }
+
+        .tree-loading {
+            text-align: center;
+            padding: 30px 20px;
+            color: #999;
+        }
+
+        .tree-loading i {
+            font-size: 36px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        /* Material Icons Spin */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .icon-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Card styling improvements */
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .card-title {
+            margin-bottom: 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .category-tree-sidebar {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+                margin-bottom: 20px;
+                padding-right: 0;
+                padding-bottom: 20px;
+            }
+
+            .category-details-panel {
+                padding-left: 0;
+            }
+        }
+
+        /* Empty state styling */
+        .alert-info {
+            border-left: 4px solid #17a2b8;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="inpost-category-mapping-tree-view">
+    {# Flash Messages #}
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type == 'error' ? 'danger' : type }} alert-dismissible fade show" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="{{ 'Close'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                {% if type == 'success' %}
+                    <i class="material-icons">check_circle</i>
+                {% elseif type == 'error' or type == 'danger' %}
+                    <i class="material-icons">error</i>
+                {% elseif type == 'warning' %}
+                    <i class="material-icons">warning</i>
+                {% else %}
+                    <i class="material-icons">info</i>
+                {% endif %}
+                <strong>{{ message }}</strong>
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="page-title">
+                <i class="material-icons">account_tree</i>
+                {{ 'InPost Category Mapping'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+            </h1>
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <p class="text-muted mb-2">
+                    {{ 'Select a category from the tree to manage PrestaShop category mappings. Categories are synced from the InPost API.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                </p>
+                <div class="mb-2">
+                <div class="btn-group btn-group-sm inpost-view-switch" role="group">
+                    <button type="button" class="btn btn-primary" data-view="tree">
+                        <i class="material-icons">account_tree</i> {{ 'InPost tree'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" data-view="assistant">
+                        <i class="material-icons">auto_fix_high</i> {{ 'Assistant: shop → InPost'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </button>
+                </div>
+                <a class="btn btn-outline-primary btn-sm inpost-view-switch-link" href="{{ path('inpost_attribute_mapping_view') }}">
+                    <i class="material-icons" style="font-size:18px;vertical-align:-4px;">tune</i> {{ 'Attribute assistant'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# GOKINT-929: warn about mappings that point at categories orphaned in InPost #}
+    {% if orphan_links is defined and orphan_links|length > 0 %}
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    <i class="material-icons">warning</i>
+                    <strong>{{ '%count% category mapping(s) point at a category that no longer exists in InPost.'|trans({'%count%': orphan_links|length}, 'Modules.Inpostvonhalsky.Admin') }}</strong>
+                    <p class="mb-2 mt-2">
+                        {{ 'Offers using these mappings will be rejected by the InPost API. Repoint them to an active category.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </p>
+                    <ul class="mb-0">
+                        {% for link in orphan_links %}
+                            <li>{{ link.name }} <small class="text-muted">({{ link.inpost_category_id }}, {{ link.language }})</small></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {# Mapping assistant: PS category tree with InPost suggestions (views/js/mapping_assistant.js) #}
+    <div id="inpost-assistant-view" style="display:none;"
+         data-data="{{ path('inpost_category_mapping_assistant_data') }}"
+         data-search="{{ path('inpost_category_mapping_assistant_search') }}"
+         data-bulk="{{ path('inpost_category_mapping_assistant_bulk') }}"
+         data-unmap="{{ path('inpost_category_mapping_assistant_unmap') }}"
+         data-store="{{ path('inpost_category_mapping_store') }}"
+         data-attributes="{{ path('inpost_attribute_mapping_view') }}"
+         data-sure="{{ assistant_thresholds.sure }}"
+         data-check="{{ assistant_thresholds.check }}">
+        <div class="card">
+            <div class="card-body">
+                <p class="ia-help mb-3">
+                    {{ 'Your shop categories with InPost categories suggested by name, the category path and product names. Accept a suggestion with one click, pick another or search. Nothing is saved until you accept.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                </p>
+                <div class="ia-summary"></div>
+                <div class="ia-toolbar">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary js-filter active" data-filter="todo">{{ 'To map'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</button>
+                        <button type="button" class="btn btn-outline-secondary js-filter" data-filter="mapped">{{ 'Mapped'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</button>
+                        <button type="button" class="btn btn-outline-secondary js-filter" data-filter="all">{{ 'All'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</button>
+                    </div>
+                    <label class="mb-0 ia-muted"><input type="checkbox" class="js-with-products"> {{ 'Only with products'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</label>
+                    <input type="text" class="form-control form-control-sm js-query" placeholder="{{ 'Filter shop categories...'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                    <button type="button" class="btn btn-link btn-sm js-reload ml-auto"><i class="material-icons" style="font-size:16px;vertical-align:-3px;">refresh</i> {{ 'Recalculate'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</button>
+                </div>
+                <div class="ia-bulk-wrap"></div>
+                <div class="ia-body"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="inpost-tree-view">
+        <!-- LEFT SIDEBAR: Tree View -->
+        <div class="col-md-4 col-lg-4">
+            <div class="category-tree-sidebar">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="material-icons">category</i>
+                            {{ 'InPost Categories'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group input-group-sm mb-2" id="inpost-tree-search-wrap">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="material-icons" style="font-size:16px;">search</i></span>
+                            </div>
+                            <input type="text" class="form-control" id="inpost-tree-search"
+                                   placeholder="{{ 'Search categories...'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}"
+                                   autocomplete="off">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-secondary" id="inpost-tree-search-clear" title="{{ 'Clear'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">
+                                    <i class="material-icons" style="font-size:16px;">close</i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="inpost-tree-search-results" style="display:none;"></div>
+                        <div id="inpost-tree-container">
+                            <div class="tree-loading">
+                                <i class="material-icons icon-spin">refresh</i>
+                                <div>{{ 'Loading category tree...'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</div>
+                                <small class="text-muted">{{ 'Please wait'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="material-icons" style="font-size: 14px;">info</i>
+                        {{ 'Tree supports lazy loading for optimal performance.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT CONTENT: Category Details & Edit Form -->
+        <div class="col-md-8 col-lg-8">
+            <div class="category-details-panel">
+                <div id="category-details-content">
+                    {# Default view: already-mapped categories (restored via JS "back") #}
+                    <div id="mapped-categories-default">
+                        <div class="card shadow-sm mapped-categories-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3 class="card-title mb-0">
+                                    <i class="material-icons">link</i>
+                                    {{ 'Mapped categories'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}
+                                </h3>
+                                <span class="badge badge-primary">{{ links|length }}</span>
+                            </div>
+                            <div class="card-body">
+                                {% if links is empty %}
+                                    <div class="text-center py-5">
+                                        <i class="material-icons" style="font-size: 64px; color: #ccc;">folder_open</i>
+                                        <p class="text-muted mt-3">{{ 'No categories mapped yet. Select a category from the tree to create a mapping.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</p>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">{{ 'Click a mapping to open its details and attribute mapping.'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</p>
+                                    <div class="list-group mapped-categories-list">
+                                        {% for link in links %}
+                                            <a href="#" class="list-group-item list-group-item-action inpost-mapped-item d-flex justify-content-between align-items-center"
+                                               data-entity-id="{{ link.entity_id }}"
+                                               data-category-id="{{ link.inpost_category_id }}">
+                                                <span>
+                                                    <span class="ps-cat">{{ link.ps_category_name ?: ('#' ~ link.prestashop_category_id) }}</span>
+                                                    <i class="material-icons align-middle" style="font-size:16px;color:#999;">arrow_forward</i>
+                                                    <span class="inpost-cat font-weight-bold">{{ link.name }}</span>
+                                                </span>
+                                                <span>
+                                                    {% if link.is_active is defined and link.is_active == 0 %}
+                                                        <span class="badge badge-warning">{{ 'orphaned'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}</span>
+                                                    {% endif %}
+                                                    {% if link.is_leaf %}
+                                                        <i class="material-icons align-middle" style="font-size:16px;color:#28a745;" title="{{ 'Leaf'|trans({}, 'Modules.Inpostvonhalsky.Admin') }}">description</i>
+                                                    {% endif %}
+                                                </span>
+                                            </a>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/jstree.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
+    {% include '@Modules/inpostvonhalsky/views/templates/admin/_partials/js_i18n.html.twig' %}
+    <script src="{{ asset('../modules/inpostvonhalsky/views/js/category_mapping_tree.js') }}?v={{ 'now'|date('YmdHis') }}"></script>
+    {% include '@Modules/inpostvonhalsky/views/templates/admin/_partials/assistant_i18n.html.twig' %}
+    <script src="{{ asset('../modules/inpostvonhalsky/views/js/mapping_assistant.js') }}?v={{ 'now'|date('YmdHis') }}"></script>
+{% endblock %}

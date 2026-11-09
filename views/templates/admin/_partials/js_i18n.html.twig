@@ -1,0 +1,71 @@
+{#
+/**
+ * Translations for the module JavaScript (views/js/*.js read them with __() /
+ * inpostTrans()). Include once before the module scripts of a page.
+ *
+ * @author    SII Poland
+ * @copyright 2025 SII Poland
+ * @license   Commercial
+ */
+#}
+{% set d = 'Modules.Inpostvonhalsky.Admin' %}
+<script>
+  window.InpostI18n = Object.assign(window.InpostI18n || {}, {{ {
+    '%total% selected:': '%total% selected:'|trans({}, d),
+    '%ready% ready, %warning% with warnings, %blocked% blocked.': '%ready% ready, %warning% with warnings, %blocked% blocked.'|trans({}, d),
+    'Done:': 'Done:'|trans({}, d),
+    '%created% created, %skipped% skipped, %errors% errors.': '%created% created, %skipped% skipped, %errors% errors.'|trans({}, d),
+    'Request failed': 'Request failed'|trans({}, d),
+    'Publishing...': 'Publishing...'|trans({}, d),
+    'Publish done:': 'Publish done:'|trans({}, d),
+    '%created% created, %updated% updated, %errors% errors.': '%created% created, %updated% updated, %errors% errors.'|trans({}, d),
+    'No products found.': 'No products found.'|trans({}, d),
+    'Add': 'Add'|trans({}, d),
+    'Added': 'Added'|trans({}, d),
+    'No categories match "%query%".': 'No categories match "%query%".'|trans({}, d),
+    'orphaned': 'orphaned'|trans({}, d),
+    'Search failed': 'Search failed'|trans({}, d),
+    'Loading category details...': 'Loading category details...'|trans({}, d),
+    'Mapped categories': 'Mapped categories'|trans({}, d),
+    'Error loading category details:': 'Error loading category details:'|trans({}, d),
+    'Status: %status%': 'Status: %status%'|trans({}, d),
+    'Searching...': 'Searching...'|trans({}, d),
+    'No results.': 'No results.'|trans({}, d),
+    'Name': 'Name'|trans({}, d),
+    'Brand': 'Brand'|trans({}, d),
+    'Attrs': 'Attrs'|trans({}, d),
+    'Apply': 'Apply'|trans({}, d),
+    'Applying...': 'Applying...'|trans({}, d),
+    'Apply failed': 'Apply failed'|trans({}, d),
+    'No EAN on the product — nothing to match.': 'No EAN on the product — nothing to match.'|trans({}, d),
+    'No matching products found in the InPost catalogue.': 'No matching products found in the InPost catalogue.'|trans({}, d),
+    'Select': 'Select'|trans({}, d),
+    'Failed to apply suggestion': 'Failed to apply suggestion'|trans({}, d),
+    'This field is required': 'This field is required'|trans({}, d),
+    'Invalid email format': 'Invalid email format'|trans({}, d),
+    'Invalid URL format (must start with http:// or https://)': 'Invalid URL format (must start with http:// or https://)'|trans({}, d),
+    'Must be a number': 'Must be a number'|trans({}, d),
+    'Must be at least %min%': 'Must be at least %min%'|trans({}, d),
+    'Must be at most %max%': 'Must be at most %max%'|trans({}, d),
+    'Close this offer? It will be removed from InPost marketplace.': 'Close this offer? It will be removed from InPost marketplace.'|trans({}, d),
+    'Closing offer...': 'Closing offer...'|trans({}, d),
+    'Reopen this offer? It will be published again on InPost.': 'Reopen this offer? It will be published again on InPost.'|trans({}, d),
+    'Reopening offer...': 'Reopening offer...'|trans({}, d),
+    'Action completed successfully': 'Action completed successfully'|trans({}, d),
+    'Error: %error%': 'Error: %error%'|trans({}, d),
+    'Unknown error': 'Unknown error'|trans({}, d),
+    'Failed to load events': 'Failed to load events'|trans({}, d),
+    'Error:': 'Error:'|trans({}, d),
+    'ready': 'ready'|trans({}, d),
+    'warning': 'warning'|trans({}, d),
+    'blocked': 'blocked'|trans({}, d),
+    'created': 'created'|trans({}, d),
+    'skipped': 'skipped'|trans({}, d),
+    'error': 'error'|trans({}, d),
+    'Select all variants': 'Select all variants'|trans({}, d),
+    '%count% selected for creation.': '%count% selected for creation.'|trans({}, d),
+    'Stock': 'Stock'|trans({}, d),
+    'Open offer': 'Open offer'|trans({}, d),
+    '%count% variant(s)': '%count% variant(s)'|trans({}, d)
+  }|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }});
+</script>
