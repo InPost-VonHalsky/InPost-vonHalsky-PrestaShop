@@ -140,12 +140,6 @@ composer stan
 
 Technical details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md).
 
-### Releasing
-
-1. Set the version in `inpostvonhalsky.php`, `config.xml`, `composer.json` and the user guides, and add a `CHANGELOG.md` section.
-2. Push a tag `vX.Y.Z`.
-
-The **Release** GitHub Actions workflow builds `inpostvonhalsky-X.Y.Z.zip` with `vendor/` and attaches it to the GitHub release.
 
 ## Troubleshooting
 
