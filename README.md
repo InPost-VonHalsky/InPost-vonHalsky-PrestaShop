@@ -1,4 +1,4 @@
-# InPost von Halsky - PrestaShop Module
+# InPost vonHalsky - PrestaShop Module
 
 Integration of a PrestaShop shop with the InPost von Halsky marketplace: products are listed as InPost offers and InPost orders are created in PrestaShop.
 
