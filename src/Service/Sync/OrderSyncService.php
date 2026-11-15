@@ -756,13 +756,16 @@ class OrderSyncService
     }
 
     /**
-     * Extract point name from API response
+     * Extract the pickup point (parcel locker code, e.g. "KRA01M") from API response.
+     *
+     * The API returns it as `delivery.deliveryPoint` (null for COURIER deliveries).
+     * The legacy top-level paths are kept as a fallback only.
      */
     private function extractPointName($order): ?string
     {
-        $value = $this->extractValue($order, ['pointName', 'point.name']);
+        $value = $this->extractValue($order, ['delivery.deliveryPoint', 'pointName', 'point.name']);
 
-        return $value !== null ? (string) $value : null;
+        return $value !== null && trim((string) $value) !== '' ? trim((string) $value) : null;
     }
 
     /**
@@ -786,23 +789,36 @@ class OrderSyncService
     }
 
     /**
-     * Extract receiver email from API response
+     * Extract receiver email from API response.
+     *
+     * The API returns it as `delivery.email` (the per-order address on market.inpostpay.pl
+     * that InPost uses to link the ShipX shipment with the order).
      */
     private function extractReceiverEmail($order): ?string
     {
-        $value = $this->extractValue($order, ['receiverEmail', 'receiver.email']);
+        $value = $this->extractValue($order, ['delivery.email', 'receiverEmail', 'receiver.email']);
 
-        return $value !== null ? (string) $value : null;
+        return $value !== null && trim((string) $value) !== '' ? trim((string) $value) : null;
     }
 
     /**
-     * Extract receiver phone from API response
+     * Extract receiver phone from API response.
+     *
+     * The API returns it as `delivery.phoneNumber`, a string with the country prefix
+     * ("+48600100200"). Some API examples show an object {countryPrefix, number},
+     * so both shapes are accepted.
      */
     private function extractReceiverPhone($order): ?string
     {
-        $value = $this->extractValue($order, ['receiverPhone', 'receiver.phone']);
+        $value = $this->extractValue($order, ['delivery.phoneNumber', 'receiverPhone', 'receiver.phone']);
 
-        return $value !== null ? (string) $value : null;
+        if (is_array($value) || is_object($value)) {
+            $prefix = (string) ($this->extractValue($value, ['countryPrefix']) ?? '');
+            $number = (string) ($this->extractValue($value, ['number']) ?? '');
+            $value = $prefix . $number;
+        }
+
+        return $value !== null && trim((string) $value) !== '' ? trim((string) $value) : null;
     }
 
     /**

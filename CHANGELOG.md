@@ -5,6 +5,15 @@ All notable changes to the InPost von Halsky module will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- ShipX integration: the pickup point, receiver e-mail and receiver phone are now read from
+  `delivery.deliveryPoint`, `delivery.email` and `delivery.phoneNumber` of the API order.
+  Before, they were looked up under top-level paths the API does not return, so they were
+  always empty and every shipment was created as a courier shipment without a phone number,
+  even for parcel locker (Paczkomat) orders.
+
 ## [1.0.0] - 2026-11-09
 
 First public release.
